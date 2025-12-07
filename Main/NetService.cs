@@ -781,18 +781,15 @@ public class NetService : MonoBehaviour, INetEventListener
                     var mySteamId = Steamworks.SteamUser.GetSteamID();
                     steamId = mySteamId.ToString();
                     steamName = Steamworks.SteamFriends.GetPersonaName();
-
-                    
                     int avatarHandle = Steamworks.SteamFriends.GetLargeFriendAvatar(mySteamId);
                     if (avatarHandle > 0)
                     {
-                        ulong accountId = mySteamId.m_SteamID & 0xFFFFFFFF;
-                        steamAvatarUrl = $"https:
+                        steamAvatarUrl = $"https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/{avatarHandle}";
                     }
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning($"[NetService] 获取 Steam 信息失败: {ex.Message}");
+                    Debug.LogWarning($"[NetService] Failed to get Steam info: {ex.Message}");
                 }
             }
 

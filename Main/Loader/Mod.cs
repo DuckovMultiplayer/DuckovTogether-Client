@@ -237,8 +237,7 @@ public partial class ModBehaviourF : MonoBehaviour
 
                 if (avatarHandle > 0)
                 {
-                    
-                    avatarUrl = $"https:
+                    avatarUrl = $"https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/{avatarHandle}";
                 }
 
                 
