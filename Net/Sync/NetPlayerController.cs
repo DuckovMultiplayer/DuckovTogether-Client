@@ -57,16 +57,28 @@ public class RemotePlayerManager : MonoBehaviour
     
     private GameObject FindPlayerPrefab()
     {
-        var mainCharacter = CharacterMainControl.Main;
-        if (mainCharacter != null)
+        var mainControlType = System.Type.GetType("CharacterMainControl, Assembly-CSharp");
+        if (mainControlType != null)
         {
-            return mainCharacter.gameObject;
+            var mainProp = mainControlType.GetProperty("Main", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+            if (mainProp != null)
+            {
+                var mainObj = mainProp.GetValue(null) as MonoBehaviour;
+                if (mainObj != null)
+                    return mainObj.gameObject;
+            }
         }
         
         var playerObjects = GameObject.FindGameObjectsWithTag("Player");
         if (playerObjects.Length > 0)
-        {
             return playerObjects[0];
+        
+        var candidates = Object.FindObjectsOfType<MonoBehaviour>();
+        foreach (var c in candidates)
+        {
+            var typeName = c.GetType().Name;
+            if (typeName.Contains("CharacterMain") || typeName.Contains("PlayerController"))
+                return c.gameObject;
         }
         
         return null;
@@ -120,17 +132,24 @@ public class RemotePlayerManager : MonoBehaviour
             playerObject = Instantiate(_playerPrefab);
             playerObject.name = $"RemotePlayer_{networkId}";
             
-            var mainControl = playerObject.GetComponent<CharacterMainControl>();
-            if (mainControl != null)
-            {
-                mainControl.enabled = false;
-            }
-            
-            var inputComponents = playerObject.GetComponents<MonoBehaviour>();
-            foreach (var comp in inputComponents)
+            var allComponents = playerObject.GetComponents<MonoBehaviour>();
+            foreach (var comp in allComponents)
             {
                 var typeName = comp.GetType().Name.ToLower();
-                if (typeName.Contains("input") || typeName.Contains("player") && typeName.Contains("control"))
+                if (typeName.Contains("charactermain") || 
+                    typeName.Contains("input") || 
+                    typeName.Contains("playercontrol") ||
+                    typeName.Contains("camera"))
+                {
+                    comp.enabled = false;
+                }
+            }
+            
+            var childComponents = playerObject.GetComponentsInChildren<MonoBehaviour>();
+            foreach (var comp in childComponents)
+            {
+                var typeName = comp.GetType().Name.ToLower();
+                if (typeName.Contains("input") || typeName.Contains("camera"))
                 {
                     comp.enabled = false;
                 }
