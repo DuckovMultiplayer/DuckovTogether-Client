@@ -24,7 +24,6 @@ internal static class Patch_Door_Open_ClientToServer
     {
         var m = ModBehaviourF.Instance;
         if (m == null || !m.networkStarted) return true;
-        if (m.IsServer) return true; // 主机放行
         if (Door._applyingDoor) return true; // 正在应用网络下发，放行
 
         COOPManager.Door.Client_RequestDoorSetState(__instance, false);
@@ -40,7 +39,6 @@ internal static class Patch_Door_Close_ClientToServer
     {
         var m = ModBehaviourF.Instance;
         if (m == null || !m.networkStarted) return true;
-        if (m.IsServer) return true;
         if (Door._applyingDoor) return true;
 
         COOPManager.Door.Client_RequestDoorSetState(__instance, true);
@@ -56,7 +54,6 @@ internal static class Patch_Door_Switch_ClientToServer
     {
         var m = ModBehaviourF.Instance;
         if (m == null || !m.networkStarted) return true;
-        if (m.IsServer) return true;
         if (Door._applyingDoor) return true;
 
         var isOpen = false;
@@ -80,7 +77,7 @@ internal static class Patch_Door_SetClosed_BroadcastOnServer
     private static void Postfix(global::Door __instance, bool _closed)
     {
         var m = ModBehaviourF.Instance;
-        if (m == null || !m.networkStarted || !m.IsServer) return;
+        if (m == null || !m.networkStarted) return;
 
         var key = 0;
         try

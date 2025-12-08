@@ -31,30 +31,25 @@ public static class Patch_Item_Pickup_NotifyAdded
         // 只关注“主角相关”的拾取；例如 inv 属于玩家身上的背包/角色栏等
         // 如果游戏里还有其它 NPC/容器也会触发，可再加更精确的判断（比如 inv.AttachedToItem 是否是玩家背包）
         // —— 客户端逻辑：拾到自己客户端映射的掉落，就立刻销毁地面体并发拾取请求
-        if (!mod.IsServer)
+        if (TryFindId(COOPManager.ItemHandle.clientDroppedItems, __instance, out var cid))
         {
-            if (TryFindId(COOPManager.ItemHandle.clientDroppedItems, __instance, out var cid))
+            // 本地立刻把地面拾取体干掉（如果还在）
+            try
             {
-                // 本地立刻把地面拾取体干掉（如果还在）
-                try
-                {
-                    var ag = __instance.ActiveAgent;
-                    if (ag && ag.gameObject) Object.Destroy(ag.gameObject);
-                }
-                catch
-                {
-                }
-
-                // 发送拾取请求给主机（等主机广播 DESPAWN，让所有客户端一致删除）
-                var msg = new Net.HybridNet.ItemPickupRequestMessage { DropId = cid };
-                Net.HybridNet.HybridNetCore.Send(msg, mod.connectedPeer);
+                var ag = __instance.ActiveAgent;
+                if (ag && ag.gameObject) Object.Destroy(ag.gameObject);
+            }
+            catch
+            {
             }
 
-            return;
+            // 发送拾取请求给主机（等主机广播 DESPAWN，让所有客户端一致删除）
+            var msg = new Net.HybridNet.ItemPickupRequestMessage { DropId = cid };
+            Net.HybridNet.HybridNetCore.Send(msg, mod.connectedPeer);
         }
 
         // —— 主机逻辑：主机自己捡起主机表里的掉落，则直接移除并广播 DESPAWN
-        if (mod.IsServer && TryFindId(COOPManager.ItemHandle.serverDroppedItems, __instance, out var sid))
+        if (TryFindId(COOPManager.ItemHandle.serverDroppedItems, __instance, out var sid))
         {
             COOPManager.ItemHandle.serverDroppedItems.Remove(sid);
 
@@ -93,7 +88,7 @@ internal static class Patch_Item_Split_RecordForLoot
     private static void Postfix(Item __instance, int count, ref UniTask<Item> __result)
     {
         var m = ModBehaviourF.Instance;
-        if (m == null || !m.networkStarted || m.IsServer) return;
+        if (m == null || !m.networkStarted) return;
 
         var srcInv = __instance ? __instance.InInventory : null;
         if (srcInv == null) return;
@@ -122,7 +117,7 @@ internal static class Patch_Item_Split_InterceptLoot_Prefix
     private static bool Prefix(Item __instance, int count, ref UniTask<Item> __result)
     {
         var m = ModBehaviourF.Instance;
-        if (m == null || !m.networkStarted || m.IsServer) return true;
+        if (m == null || !m.networkStarted) return true;
 
         var inv = __instance ? __instance.InInventory : null;
         if (inv == null) return true;
