@@ -395,7 +395,7 @@ public static class SceneVoteMessage
         var service = NetService.Instance;
         if (
             service != null
-            && service.IsServer
+            && false
             && service.TransportMode == NetworkTransportMode.SteamP2P  
             && SteamManager.Initialized
             && _hostVoteState.playerList != null
@@ -509,8 +509,7 @@ public static class SceneVoteMessage
     )
     {
         var service = NetService.Instance;
-        if (service == null || !service.IsServer)
-            return;
+        return;
 
         var data = new ForceSceneLoadData
         {
@@ -557,7 +556,7 @@ public static class SceneVoteMessage
     public static void Client_HandleVoteState(string json)
     {
         var service = NetService.Instance;
-        if (service == null || service.IsServer)
+        if (service == null)
             return;
 
         
@@ -755,7 +754,7 @@ public static class SceneVoteMessage
     public static void Client_ToggleReady(bool ready)
     {
         var service = NetService.Instance;
-        if (service == null || service.IsServer)
+        if (service == null)
             return;
 
         var myId = service.localPlayerStatus?.EndPoint ?? "";
@@ -803,7 +802,7 @@ public static class SceneVoteMessage
     )
     {
         var service = NetService.Instance;
-        if (service == null || service.IsServer)
+        if (service == null)
             return;
 
         var data = new VoteRequestData
@@ -828,8 +827,7 @@ public static class SceneVoteMessage
     public static void Host_HandleVoteRequest(string json)
     {
         var service = NetService.Instance;
-        if (service == null || !service.IsServer)
-            return;
+        return;
 
         try
         {
@@ -864,8 +862,7 @@ public static class SceneVoteMessage
     public static void Host_HandleReadyToggle(string json)
     {
         var service = NetService.Instance;
-        if (service == null || !service.IsServer)
-            return;
+        return;
 
         try
         {
@@ -893,7 +890,7 @@ public static class SceneVoteMessage
     public static void Client_HandleForceSceneLoad(string json)
     {
         var service = NetService.Instance;
-        if (service == null || service.IsServer)
+        if (service == null)
             return;
 
         LoggerHelper.Log($"[SceneVote] 客户端收到强制场景切换 JSON: {json}");
