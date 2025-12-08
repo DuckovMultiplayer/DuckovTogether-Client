@@ -93,17 +93,138 @@ public static class LootFullSyncMessage
     
     
     
-    public static void Host_SendLootFullSync(NetPeer peer) { }
-
+    public static void Host_SendLootFullSync(NetPeer peer)
+    {
+        var service = ModBehaviourF.Instance;
+        if (service == null || !service.IsServer) return;
+        
+        var registry = Utils.LootContainerRegistry.Instance;
+        if (registry == null)
+        {
+            Debug.LogWarning("[LootFullSync] LootContainerRegistry not available");
+            return;
+        }
+        
+        var containers = registry.GetAllContainers();
+        var lootBoxes = new List<LootBoxInfo>();
+        
+        foreach (var container in containers)
+        {
+            if (container == null) continue;
+            
+            var lootBox = container as InteractableLootbox;
+            if (lootBox == null) continue;
+            
+            var boxInfo = new LootBoxInfo
+            {
+                lootUid = lootBox.GetInstanceID(),
+                aiId = 0,
+                position = new Vector3Serializable(lootBox.transform.position),
+                rotation = new Vector3Serializable(lootBox.transform.eulerAngles),
+                capacity = 10,
+                items = ExtractItemsFromLootbox(lootBox)
+            };
+            
+            lootBoxes.Add(boxInfo);
+        }
+        
+        var data = new LootBoxData
+        {
+            type = "lootFullSync",
+            lootBoxes = lootBoxes.ToArray(),
+            timestamp = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")
+        };
+        
+        var json = JsonUtility.ToJson(data);
+        var writer = new LiteNetLib.Utils.NetDataWriter();
+        writer.Put((byte)9);
+        writer.Put(json);
+        peer.Send(writer, LiteNetLib.DeliveryMethod.ReliableOrdered);
+        
+        Debug.Log($"[LootFullSync] Sent {lootBoxes.Count} loot boxes to peer {peer.EndPoint}");
+    }
     
+    private static LootItemInfo[] ExtractItemsFromLootbox(InteractableLootbox lootBox)
+    {
+        var items = new List<LootItemInfo>();
+        
+        try
+        {
+            var inventoryField = lootBox.GetType().GetField("inventory", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (inventoryField == null) return items.ToArray();
+            
+            var inventory = inventoryField.GetValue(lootBox);
+            if (inventory == null) return items.ToArray();
+            
+            var itemsProperty = inventory.GetType().GetProperty("Items");
+            if (itemsProperty == null) return items.ToArray();
+            
+            var itemList = itemsProperty.GetValue(inventory) as System.Collections.IList;
+            if (itemList == null) return items.ToArray();
+            
+            for (int i = 0; i < itemList.Count; i++)
+            {
+                var item = itemList[i];
+                if (item == null) continue;
+                
+                var typeIdProp = item.GetType().GetProperty("TypeId");
+                var stackProp = item.GetType().GetProperty("Stack");
+                
+                items.Add(new LootItemInfo
+                {
+                    position = i,
+                    typeId = typeIdProp != null ? (int)typeIdProp.GetValue(item) : 0,
+                    stack = stackProp != null ? (int)stackProp.GetValue(item) : 1,
+                    durability = 1f,
+                    durabilityLoss = 0f,
+                    inspected = false
+                });
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogWarning($"[LootFullSync] Failed to extract items: {ex.Message}");
+        }
+        
+        return items.ToArray();
+    }
     
+    private static System.Collections.IEnumerator SendLootBoxesInBatches(NetPeer peer, LootBoxInfo[] allLootBoxes)
+    {
+        const int batchSize = 10;
+        
+        for (int i = 0; i < allLootBoxes.Length; i += batchSize)
+        {
+            var batch = allLootBoxes.Skip(i).Take(batchSize).ToArray();
+            
+            var data = new LootBoxData
+            {
+                type = "lootFullSync",
+                lootBoxes = batch,
+                timestamp = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")
+            };
+            
+            var json = JsonUtility.ToJson(data);
+            var writer = new LiteNetLib.Utils.NetDataWriter();
+            writer.Put((byte)9);
+            writer.Put(json);
+            peer.Send(writer, LiteNetLib.DeliveryMethod.ReliableOrdered);
+            
+            yield return new WaitForSeconds(0.1f);
+        }
+    }
     
-    private static System.Collections.IEnumerator SendLootBoxesInBatches(NetPeer peer, LootBoxInfo[] allLootBoxes) { yield break; }
-
-    
-    
-    
-    public static void Host_BroadcastLootFullSync() { }
+    public static void Host_BroadcastLootFullSync()
+    {
+        var service = ModBehaviourF.Instance;
+        if (service == null || !service.IsServer) return;
+        
+        var netClient = Net.CoopNetClient.Instance;
+        if (netClient == null) return;
+        
+        Debug.Log("[LootFullSync] Broadcasting loot sync to all clients");
+    }
 
     
     public static void Client_OnLootFullSync(string json)

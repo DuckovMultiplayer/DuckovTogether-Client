@@ -257,6 +257,54 @@ namespace EscapeFromDuckovCoopMod.Game.Building
         
         private void SpawnRemoteBuilding(BuildingState state)
         {
+            try
+            {
+                var buildingPrefab = FindBuildingPrefab(state.BuildingType);
+                if (buildingPrefab == null)
+                {
+                    Debug.LogWarning($"[BuildingSync] Prefab not found for building type: {state.BuildingType}");
+                    return;
+                }
+                
+                var position = state.Position;
+                var rotation = Quaternion.Euler(state.Rotation);
+                
+                var buildingObj = UnityEngine.Object.Instantiate(buildingPrefab, position, rotation);
+                buildingObj.name = $"RemoteBuilding_{state.BuildingId}";
+                
+                var marker = buildingObj.AddComponent<RemoteBuildingMarker>();
+                marker.BuildingId = state.BuildingId;
+                marker.OwnerId = state.OwnerId;
+                marker.Level = state.Level;
+                
+                _buildingObjects[state.BuildingId] = buildingObj;
+                
+                Debug.Log($"[BuildingSync] Spawned remote building: {state.BuildingType} at {position}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[BuildingSync] Failed to spawn building: {ex.Message}");
+            }
+        }
+        
+        private GameObject FindBuildingPrefab(string buildingType)
+        {
+            var prefab = Resources.Load<GameObject>($"Buildings/{buildingType}");
+            if (prefab != null) return prefab;
+            
+            prefab = Resources.Load<GameObject>($"Prefabs/Buildings/{buildingType}");
+            if (prefab != null) return prefab;
+            
+            var allBuildings = Resources.FindObjectsOfTypeAll<GameObject>();
+            foreach (var obj in allBuildings)
+            {
+                if (obj.name.Equals(buildingType, StringComparison.OrdinalIgnoreCase))
+                {
+                    return obj;
+                }
+            }
+            
+            return null;
         }
         
         private string GetLocalPlayerId()
@@ -358,5 +406,17 @@ namespace EscapeFromDuckovCoopMod.Game.Building
     {
         public string type;
         public long timestamp;
+    }
+    
+    public class RemoteBuildingMarker : MonoBehaviour
+    {
+        public string BuildingId { get; set; } = "";
+        public string OwnerId { get; set; } = "";
+        public int Level { get; set; } = 1;
+        
+        public void UpdateLevel(int newLevel)
+        {
+            Level = newLevel;
+        }
     }
 }
