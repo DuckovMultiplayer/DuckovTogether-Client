@@ -110,7 +110,6 @@ internal static class Patch_AIHealth_Hurt_HostAuthority
     {
         var mod = ModBehaviourF.Instance;
         if (mod == null || !mod.networkStarted) return true;
-        if (mod.IsServer) return true; // 主机照常
         
         // 【优化】使用缓存判定
         if (HealthCache.IsMain(__instance)) return true;
@@ -156,7 +155,7 @@ internal static class Patch_AIHealth_Hurt_HostAuthority
     private static void Postfix(Health __instance, DamageInfo damageInfo)
     {
         var mod = ModBehaviourF.Instance;
-        if (mod == null || !mod.networkStarted || !mod.IsServer) return;
+        if (mod == null) return;
 
         var cmc = __instance.TryGetCharacter();
         if (!cmc)
@@ -215,7 +214,7 @@ internal static class Patch_Health
         _cliReport = false;
 
         // 仅客户端 + 仅本机玩家打到 AI 时，走"拦截→本地播特效→网络上报"
-        if (!mod.IsServer && isAiVictim && fromLocalMain)
+        if (isAiVictim && fromLocalMain)
         {
             // 【优化】使用 ComponentCache 避免重复 GetComponent
             var tag = ComponentCache.GetNetAiTag(victimCmc);
@@ -246,7 +245,7 @@ internal static class Patch_Health
         _cliReport = false;
 
         var mod = ModBehaviourF.Instance;
-        if (mod == null || mod.IsServer) return;
+        if (mod == null) return;
 
         var aiId = _cliReportAiId;
         if (aiId == 0) return;
@@ -284,32 +283,12 @@ internal static class Patch_CoopPlayer_Health_Hurt
         if (mod == null || !mod.networkStarted) return true;
 
         // 【优化】使用缓存判定 Main
-        if (!mod.IsServer)
-        {
-            if (HealthCache.IsMain(__instance)) return true;
-        }
+        if (HealthCache.IsMain(__instance)) return true;
 
         // 【优化】使用缓存判定 Proxy
         var isProxy = HealthCache.IsProxy(__instance);
 
-        if (mod.IsServer && isProxy)
-        {
-            // 【优化】使用缓存的 Owner 查找
-            var owner = HealthCache.GetOwner(__instance);
-            if (owner != null)
-                try
-                {
-                    HealthM.Instance.Server_ForwardHurtToOwner(owner, damageInfo);
-                }
-                catch (Exception e)
-                {
-                    Debug.LogWarning("[HP] forward to owner failed: " + e);
-                }
-
-            return false;
-        }
-
-        if (!mod.IsServer && isProxy) return false;
+        if (isProxy) return false;
         return true;
     }
 }

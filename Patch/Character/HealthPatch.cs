@@ -75,28 +75,16 @@ public static class Patch_HSB_OnHurt_RedirectNet
         var mod = ModBehaviourF.Instance;
         if (mod == null || !mod.networkStarted) return true;
 
-        if (!mod.IsServer)
-        {
-            // 本地 UI：子弹/爆炸统一点亮 Hit；若你能在此处判断“必死”，可传 true 亮 Kill
-            LocalHitKillFx.ClientPlayForDestructible(__instance, dmgInfo, false);
+        LocalHitKillFx.ClientPlayForDestructible(__instance, dmgInfo, false);
 
-            var tag = __instance.GetComponent<NetDestructibleTag>();
-            if (!tag) tag = __instance.gameObject.AddComponent<NetDestructibleTag>();
-            COOPManager.HurtM.Client_RequestDestructibleHurt(tag.id, dmgInfo);
-            return false;
-        }
-
-        return true;
+        var tag = __instance.GetComponent<NetDestructibleTag>();
+        if (!tag) tag = __instance.gameObject.AddComponent<NetDestructibleTag>();
+        COOPManager.HurtM.Client_RequestDestructibleHurt(tag.id, dmgInfo);
+        return false;
     }
 
     private static void Postfix(HealthSimpleBase __instance, DamageInfo dmgInfo)
     {
-        var mod = ModBehaviourF.Instance;
-        if (mod == null || !mod.networkStarted || !mod.IsServer) return;
-
-        var tag = __instance.GetComponent<NetDestructibleTag>();
-        if (!tag) return;
-        COOPManager.destructible.Server_BroadcastDestructibleHurt(tag.id, __instance.HealthValue, dmgInfo);
     }
 }
 
@@ -106,12 +94,6 @@ public static class Patch_HSB_Dead_Broadcast
 {
     private static void Postfix(HealthSimpleBase __instance, DamageInfo dmgInfo)
     {
-        var mod = ModBehaviourF.Instance;
-        if (mod == null || !mod.networkStarted || !mod.IsServer) return;
-
-        var tag = __instance.GetComponent<NetDestructibleTag>();
-        if (!tag) return;
-        COOPManager.destructible.Server_BroadcastDestructibleDead(tag.id, dmgInfo);
     }
 }
 
@@ -121,26 +103,6 @@ internal static class Patch_AIHealth_SetHealth_Broadcast
 {
     private static void Postfix(Health __instance, float healthValue)
     {
-        var mod = ModBehaviourF.Instance;
-        if (mod == null || !mod.networkStarted || !mod.IsServer) return;
-
-        var cmc = __instance.TryGetCharacter();
-        if (!cmc)
-            try
-            {
-                cmc = __instance.GetComponentInParent<CharacterMainControl>();
-            }
-            catch
-            {
-            }
-
-        if (!cmc || !cmc.GetComponent<NetAiTag>()) return;
-
-        var tag = cmc.GetComponent<NetAiTag>();
-        if (!tag) return;
-
-        if (ModBehaviourF.LogAiHpDebug) Debug.Log($"[AI-HP][SERVER] SetHealth => broadcast aiId={tag.aiId} cur={__instance.CurrentHealth}");
-        COOPManager.AIHealth.Server_BroadcastAiHealth(tag.aiId, __instance.MaxHealth, __instance.CurrentHealth);
     }
 }
 
@@ -149,26 +111,6 @@ internal static class Patch_AIHealth_AddHealth_Broadcast
 {
     private static void Postfix(Health __instance, float healthValue)
     {
-        var mod = ModBehaviourF.Instance;
-        if (mod == null || !mod.networkStarted || !mod.IsServer) return;
-
-        var cmc = __instance.TryGetCharacter();
-        if (!cmc)
-            try
-            {
-                cmc = __instance.GetComponentInParent<CharacterMainControl>();
-            }
-            catch
-            {
-            }
-
-        if (!cmc || !cmc.GetComponent<NetAiTag>()) return;
-
-        var tag = cmc.GetComponent<NetAiTag>();
-        if (!tag) return;
-
-        if (ModBehaviourF.LogAiHpDebug) Debug.Log($"[AI-HP][SERVER] AddHealth => broadcast aiId={tag.aiId} cur={__instance.CurrentHealth}");
-        COOPManager.AIHealth.Server_BroadcastAiHealth(tag.aiId, __instance.MaxHealth, __instance.CurrentHealth);
     }
 }
 
@@ -263,7 +205,7 @@ internal static class Patch_Health_get_MaxHealth_ClientOverride
     private static void Postfix(Health __instance, ref float __result)
     {
         var mod = ModBehaviourF.Instance;
-        if (mod == null || mod.IsServer) return;
+        if (mod == null) return;
 
         // 只给 AI 覆盖（避免动到玩家自身的本地 UI）
         var cmc = __instance.TryGetCharacter();
@@ -288,9 +230,8 @@ internal static class Patch_HealthSimpleBase_OnHurt_RedirectNet
         var from = __0.fromCharacter;
         var fromLocalMain = from == CharacterMainControl.Main;
 
-        if (!mod.IsServer && fromLocalMain)
+        if (fromLocalMain)
         {
-            // 预测是否致死（简单用 HealthValue 判断，足够做“演出预判”）
             var predictedDead = false;
             try
             {
@@ -302,8 +243,6 @@ internal static class Patch_HealthSimpleBase_OnHurt_RedirectNet
             }
 
             LocalHitKillFx.ClientPlayForDestructible(__instance, __0, predictedDead);
-
-            // 继续你的原有逻辑：把命中发给主机权威结算
             return false;
         }
 
@@ -354,7 +293,7 @@ internal static class Patch_Health_DestroyOnDelay_SkipForAI_Server
     private static bool Prefix(Health __instance)
     {
         var mod = ModBehaviourF.Instance;
-        if (mod == null || !mod.networkStarted || !mod.IsServer) return true;
+        return true;
 
         CharacterMainControl cmc = null;
         try
