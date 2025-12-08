@@ -942,7 +942,7 @@ public class MModUI : MonoBehaviour
             {
                 if (isActiveServer)
                 {
-                    int currentPort = NetService.Instance?.port ?? 9050;
+                    int currentPort = Mod?.port ?? 9050;
                     _components.ModeInfoText.text = CoopLocalization.Get("ui.server.listenPort") + " " + currentPort;
                     _components.ModeInfoText.color = ModernColors.TextSecondary;
                 }
@@ -986,18 +986,6 @@ public class MModUI : MonoBehaviour
         {
             if (isSteamMode)
             {
-                _components.ServerPortText.text = "Steam P2P";
-                _components.ServerPortText.color = isInSteamLobby ? ModernColors.Success : ModernColors.TextSecondary;
-            }
-            else if (isActiveServer)
-            {
-                int currentPort = NetService.Instance?.port ?? 9050;
-                _components.ServerPortText.text = $"{currentPort}";
-                _components.ServerPortText.color = ModernColors.Success;
-            }
-            else
-            {
-                _components.ServerPortText.text = manualPort;
                 _components.ServerPortText.color = ModernColors.TextSecondary;
             }
         }
@@ -1067,10 +1055,10 @@ public class MModUI : MonoBehaviour
 
     private void UpdateConnectionStatus()
     {
-        if (Service == null) return;
+        if (Mod == null) return;
         if (_components?.StatusText == null && _components?.SteamStatusText == null) return;
 
-        var currentStatus = Service.status;
+        var currentStatus = Mod.status;
 
         
         if (currentStatus != _status)
@@ -1264,8 +1252,8 @@ public class MModUI : MonoBehaviour
             if (parts.Length == 2 && int.TryParse(parts[1], out var p))
             {
                 if (netManager == null || !netManager.IsRunning || IsServer || !networkStarted)
-                    NetService.Instance.StartNetwork(false);
-                NetService.Instance.ConnectToHost(parts[0], p);
+                    Mod.StartNetwork(false);
+                Mod.ConnectToHost(parts[0], p);
             }
         }, 120, ModernColors.Primary, 45, 16);
 
@@ -2707,7 +2695,7 @@ public class MModUI : MonoBehaviour
         if (isActiveServer)
         {
             
-            NetService.Instance.StopNetwork();
+            Mod.StopNetwork();
 
             SetStatusText("[OK] " + CoopLocalization.Get("ui.server.closed"), ModernColors.Info);
 
@@ -2733,8 +2721,8 @@ public class MModUI : MonoBehaviour
             if (int.TryParse(manualPort, out int serverPort))
             {
                 
-                NetService.Instance.port = serverPort;
-                NetService.Instance.StartNetwork(true);
+                Mod.port = serverPort;
+                Mod.StartNetwork(true);
 
                 SetStatusText("[OK] " + CoopLocalization.Get("ui.server.created", serverPort), ModernColors.Success);
 
@@ -2799,12 +2787,11 @@ public class MModUI : MonoBehaviour
             return;
 
         if (netManager == null || !netManager.IsRunning || IsServer || !networkStarted)
-            NetService.Instance.StartNetwork(false);
-        NetService.Instance.ConnectToHost(manualIP, p);
+            Mod.StartNetwork(false);
+        Mod.ConnectToHost(manualIP, p);
         
     }
 
-    
     
     
     internal void CopyPlayerDatabaseToClipboard()
