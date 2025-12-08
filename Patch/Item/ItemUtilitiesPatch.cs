@@ -48,7 +48,7 @@ internal static class Patch_ItemUtilities_SendToPlayerCharacterInventory_FromLoo
     private static bool Prefix(Item item, bool dontMerge, ref bool __result)
     {
         var m = ModBehaviourF.Instance;
-        if (m == null || !m.networkStarted || m.IsServer)
+        if (m == null || !m.networkStarted)
             return true;
 
         // 在 Loot.AddAt 的保护期内不兜底，避免复制
@@ -135,7 +135,7 @@ internal static class Patch_ItemUtilities_AddAndMerge_LootPut
             return true;
 
         //  同样仅限“战利品容器初始化”时屏蔽
-        if (!m.IsServer && m.ClientLootSetupActive)
+        if (m.ClientLootSetupActive)
         {
             var isLootInv =
                 LootboxDetectUtil.IsLootboxInventory(inventory)
@@ -157,7 +157,7 @@ internal static class Patch_ItemUtilities_AddAndMerge_LootPut
             }
         }
 
-        if (!m.IsServer && !COOPManager.LootNet._applyingLootState)
+        if (!COOPManager.LootNet._applyingLootState)
         {
             var isLootInv =
                 LootboxDetectUtil.IsLootboxInventory(inventory)
@@ -184,34 +184,6 @@ internal static class Patch_ItemUtilities_AddAndMerge_LootPut
         bool __result
     )
     {
-        var m = ModBehaviourF.Instance;
-        if (m == null || !m.networkStarted || !m.IsServer)
-            return;
-        if (!__result || COOPManager.LootNet._serverApplyingLoot)
-            return;
-
-        // ✅ 修复：场景切换时 LevelManager 可能正在初始化，跳过同步避免崩溃
-        try
-        {
-            if (LevelManager.Instance == null || LevelManager.LootBoxInventories == null)
-            {
-                return; // 场景初始化中，跳过
-            }
-        }
-        catch
-        {
-            return; // 访问 LootBoxInventories 失败，说明场景正在切换
-        }
-
-        // ✅ 优化：延迟到帧结束时执行，减少场景加载时的性能压力
-        DeferedRunner.EndOfFrame(() =>
-        {
-            var isLootInv =
-                LootboxDetectUtil.IsLootboxInventory(inventory)
-                && !LootboxDetectUtil.IsPrivateInventory(inventory);
-            if (isLootInv)
-                COOPManager.LootNet.Server_SendLootboxState(null, inventory);
-        });
     }
 }
 
@@ -228,7 +200,7 @@ internal static class Patch_AddAndMerge_SplitFirst
     )
     {
         var m = ModBehaviourF.Instance;
-        if (m == null || !m.networkStarted || m.IsServer)
+        if (m == null || !m.networkStarted)
             return true; // 主机 / 未联网：放行
 
         if (inventory == null || item == null)
@@ -284,7 +256,7 @@ internal static class Patch_ItemUtilities_AddAndMerge_InterceptSlotToBackpack
     )
     {
         var m = ModBehaviourF.Instance;
-        if (m == null || !m.networkStarted || m.IsServer)
+        if (m == null || !m.networkStarted)
             return true;
         if (COOPManager.LootNet._applyingLootState)
             return true;
