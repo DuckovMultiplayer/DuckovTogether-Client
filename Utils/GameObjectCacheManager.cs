@@ -1,7 +1,4 @@
-﻿// Escape-From-Duckov-Coop-Mod-Preview
-// Copyright (C) 2025  Mr.sans and InitLoader's team
-
-using Duckov.Utilities;
+﻿using Duckov.Utilities;
 using EscapeFromDuckovCoopMod.Utils;
 using ItemStatsSystem;
 using NodeCanvas.Framework;
