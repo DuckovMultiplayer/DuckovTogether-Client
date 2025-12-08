@@ -17,24 +17,13 @@ internal static class PreventClientPlayerDropAllItemsPatch
             return true;
         }
 
-        // 只在客户端阻止玩家掉落物品
-        if (!mod.IsServer && __instance == CharacterMainControl.Main)
+        if (__instance == CharacterMainControl.Main)
         {
             Debug.Log("[COOP] 阻止客户端玩家死亡时掉落所有物品");
-            return false; // 阻止掉落
+            return false;
         }
 
-        // 服务端或其他角色的掉落
-        if (mod.IsServer)
-        {
-            Debug.Log("[COOP] 服务端 DropAllItems - 允许正常执行");
-        }
-        else
-        {
-            Debug.Log("[COOP] 客户端其他角色 DropAllItems - 允许正常执行");
-        }
-
-        return true; // 允许其他情况正常执行
+        return true;
     }
 }
 
@@ -54,24 +43,13 @@ internal static class PreventClientPlayerDestroyAllItemsPatch
             return true;
         }
 
-        // 只在客户端阻止玩家销毁物品
-        if (!mod.IsServer && __instance == CharacterMainControl.Main)
+        if (__instance == CharacterMainControl.Main)
         {
             Debug.Log("[COOP] 阻止客户端玩家死亡时销毁所有物品");
-            return false; // 阻止销毁
+            return false;
         }
 
-        // 服务端或其他角色的销毁
-        if (mod.IsServer)
-        {
-            Debug.Log("[COOP] 服务端 DestroyAllItem - 允许正常执行");
-        }
-        else
-        {
-            Debug.Log("[COOP] 客户端其他角色 DestroyAllItem - 允许正常执行");
-        }
-
-        return true; // 允许其他情况正常执行
+        return true;
     }
 }
 
@@ -92,12 +70,10 @@ internal static class PreventClientPlayerOnDeadPatch
             return true;
         }
 
-        // 只在客户端阻止玩家的OnDead
-        if (!mod.IsServer && __instance == CharacterMainControl.Main)
+        if (__instance == CharacterMainControl.Main)
         {
             Debug.Log("[COOP] 阻止客户端玩家OnDead执行，保留物品");
 
-            // 手动触发观战模式（如果有队友）
             try
             {
                 if (Spectator.Instance != null)
@@ -110,20 +86,10 @@ internal static class PreventClientPlayerOnDeadPatch
                 Debug.LogWarning($"[COOP] 触发观战模式失败: {e}");
             }
 
-            return false; // 阻止OnDead执行
+            return false;
         }
 
-        // 服务端或其他角色的OnDead
-        if (mod.IsServer)
-        {
-            Debug.Log("[COOP] 服务端 OnDead - 允许正常执行");
-        }
-        else
-        {
-            Debug.Log("[COOP] 客户端其他角色 OnDead - 允许正常执行");
-        }
-
-        return true; // 允许其他情况正常执行
+        return true;
     }
 }
 
@@ -162,15 +128,13 @@ internal static class PreventClientEnsureSelfDeathEventPatch
             return true;
         }
 
-        // 只在客户端阻止本地玩家的死亡事件补发
-        if (!mod.IsServer && cmc == CharacterMainControl.Main)
+        if (cmc == CharacterMainControl.Main)
         {
             Debug.Log("[COOP] 阻止客户端死亡事件补发，保留物品");
-            return false; // 阻止死亡事件补发
+            return false;
         }
 
-        Debug.Log("[COOP] Client_EnsureSelfDeathEvent - 允许正常执行");
-        return true; // 允许其他情况正常执行
+        return true;
     }
 }
 

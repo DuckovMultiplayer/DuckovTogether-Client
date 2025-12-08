@@ -175,13 +175,14 @@ public class MModUI : MonoBehaviour
     private Dictionary<string, GameObject> clientRemoteCharacters => Service?.clientRemoteCharacters;
     private Dictionary<string, PlayerStatus> clientPlayerStatuses => Service?.clientPlayerStatuses;
 
-    
+    // Steam lobby
     internal SteamLobbyManager LobbyManager => SteamLobbyManager.Instance;
     internal NetworkTransportMode TransportMode => Service?.TransportMode ?? NetworkTransportMode.Direct;
 
-    
+    // Net service
     internal NetService Service => NetService.Instance;
-    internal bool IsServer => Service != null && Service.IsServer;
+    [System.Obsolete("Client is never server. Headless server handles all server logic.")]
+    internal bool IsServer => false;
     internal int port => Service?.port ?? _port;
     internal string status => Service?.status ?? _status;
     internal string manualIP
