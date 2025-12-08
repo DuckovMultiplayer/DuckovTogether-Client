@@ -196,6 +196,27 @@ public class JsonMessageRouter : MonoBehaviour
                 case "player_equipment_snapshot":
                     HandlePlayerEquipmentSnapshot(json);
                     break;
+                
+                case "deadLootSpawn":
+                    HandleDeadLootSpawn(json);
+                    break;
+                
+                case "weaponFire":
+                    HandleWeaponFire(json);
+                    break;
+                
+                case "playerDamage":
+                case "aiDamage":
+                    HandleDamage(json);
+                    break;
+                
+                case "grenadeThrow":
+                    HandleGrenadeThrow(json);
+                    break;
+                
+                case "grenadeExplode":
+                    HandleGrenadeExplode(json);
+                    break;
 
                 default:
                     Debug.LogWarning($"[JsonRouter] 未知的消息类型: {baseMsg.type}");
@@ -724,6 +745,205 @@ public class JsonMessageRouter : MonoBehaviour
         catch (System.Exception ex)
         {
             Debug.LogError($"[PlayerSync] 处理玩家装备快照失败: {ex.Message}");
+        }
+    }
+    
+    [System.Serializable]
+    private class DeadLootSpawnData
+    {
+        public string type;
+        public int aiId;
+        public int lootUid;
+        public Vec3 position;
+        public Vec3 rotation;
+        public string aiType;
+        public string playerName;
+        public LootItemDataJson[] items;
+        public string timestamp;
+    }
+    
+    [System.Serializable]
+    private class LootItemDataJson
+    {
+        public int slot;
+        public string itemId;
+        public int count;
+    }
+    
+    private static void HandleDeadLootSpawn(string json)
+    {
+        try
+        {
+            var data = JsonUtility.FromJson<DeadLootSpawnData>(json);
+            if (data == null) return;
+            
+            Debug.Log($"[DeathSync] 收到死亡掉落箱: aiId={data.aiId}, lootUid={data.lootUid}, pos={data.position.x},{data.position.y},{data.position.z}");
+            
+            var pos = new Vector3(data.position.x, data.position.y, data.position.z);
+            var rot = Quaternion.Euler(data.rotation.x, data.rotation.y, data.rotation.z);
+            
+            if (DeadLootBox.Instance != null)
+            {
+                DeadLootBox.Instance.SpawnDeadLootboxAt(data.aiId, data.lootUid, pos, rot);
+            }
+            else
+            {
+                Debug.LogWarning("[DeathSync] DeadLootBox.Instance 为空，无法生成掉落箱");
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[DeathSync] 处理死亡掉落箱失败: {ex.Message}");
+        }
+    }
+    
+    [System.Serializable]
+    private class WeaponFireData
+    {
+        public string type;
+        public int shooterId;
+        public int weaponId;
+        public Vec3 origin;
+        public Vec3 direction;
+        public int ammoType;
+        public long timestamp;
+    }
+    
+    private static void HandleWeaponFire(string json)
+    {
+        try
+        {
+            var data = JsonUtility.FromJson<WeaponFireData>(json);
+            if (data == null) return;
+            
+            var service = NetService.Instance;
+            if (service == null || service.IsSelfId(data.shooterId.ToString())) return;
+            
+            var playerId = data.shooterId.ToString();
+            if (service.clientRemoteCharacters?.TryGetValue(playerId, out var go) == true && go != null)
+            {
+                var origin = new Vector3(data.origin.x, data.origin.y, data.origin.z);
+                var direction = new Vector3(data.direction.x, data.direction.y, data.direction.z);
+                
+                COOPManager.PlayRemoteMuzzleFlash(go, data.weaponId, origin, direction);
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[CombatSync] 处理武器开火失败: {ex.Message}");
+        }
+    }
+    
+    [System.Serializable]
+    private class DamageData
+    {
+        public string type;
+        public int targetId;
+        public int attackerId;
+        public float damage;
+        public string damageType;
+        public Vec3 hitPoint;
+        public long timestamp;
+    }
+    
+    private static void HandleDamage(string json)
+    {
+        try
+        {
+            var data = JsonUtility.FromJson<DamageData>(json);
+            if (data == null) return;
+            
+            var hitPoint = new Vector3(data.hitPoint.x, data.hitPoint.y, data.hitPoint.z);
+            
+            if (data.type == "playerDamage")
+            {
+                var service = NetService.Instance;
+                var playerId = data.targetId.ToString();
+                
+                if (service?.clientRemoteCharacters?.TryGetValue(playerId, out var go) == true && go != null)
+                {
+                    var health = go.GetComponentInChildren<Health>(true);
+                    if (health != null)
+                    {
+                        health.TakeDamageVisual(data.damage, hitPoint);
+                    }
+                }
+            }
+            else if (data.type == "aiDamage")
+            {
+                if (AITool.aiById.TryGetValue(data.targetId, out var ai) && ai != null)
+                {
+                    var health = ai.GetComponentInChildren<Health>(true);
+                    if (health != null)
+                    {
+                        health.TakeDamageVisual(data.damage, hitPoint);
+                    }
+                }
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[CombatSync] 处理伤害失败: {ex.Message}");
+        }
+    }
+    
+    [System.Serializable]
+    private class GrenadeThrowData
+    {
+        public string type;
+        public int throwerId;
+        public int grenadeType;
+        public Vec3 origin;
+        public Vec3 velocity;
+        public long timestamp;
+    }
+    
+    private static void HandleGrenadeThrow(string json)
+    {
+        try
+        {
+            var data = JsonUtility.FromJson<GrenadeThrowData>(json);
+            if (data == null) return;
+            
+            var service = NetService.Instance;
+            if (service == null || service.IsSelfId(data.throwerId.ToString())) return;
+            
+            var origin = new Vector3(data.origin.x, data.origin.y, data.origin.z);
+            var velocity = new Vector3(data.velocity.x, data.velocity.y, data.velocity.z);
+            
+            COOPManager.SpawnRemoteGrenade(data.grenadeType, origin, velocity);
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[CombatSync] 处理手雷投掷失败: {ex.Message}");
+        }
+    }
+    
+    [System.Serializable]
+    private class GrenadeExplodeData
+    {
+        public string type;
+        public int grenadeId;
+        public Vec3 position;
+        public float radius;
+        public float damage;
+        public long timestamp;
+    }
+    
+    private static void HandleGrenadeExplode(string json)
+    {
+        try
+        {
+            var data = JsonUtility.FromJson<GrenadeExplodeData>(json);
+            if (data == null) return;
+            
+            var position = new Vector3(data.position.x, data.position.y, data.position.z);
+            
+            COOPManager.PlayExplosionEffect(position, data.radius);
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[CombatSync] 处理手雷爆炸失败: {ex.Message}");
         }
     }
 }
