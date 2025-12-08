@@ -76,17 +76,17 @@ public class AIHealth
     private static int _pendingAiWarningCount = 0;
     private const int PENDING_AI_WARNING_INTERVAL = 200;  
 
-    private NetService Service => NetService.Instance;
+    private ModBehaviourF Mod => ModBehaviourF.Instance;
 
-    private bool IsServer => Service != null && Service.IsServer;
-    private NetManager netManager => Service?.netManager;
-    private NetDataWriter writer => Service?.writer;
-    private NetPeer connectedPeer => Service?.connectedPeer;
-    private PlayerStatus localPlayerStatus => Service?.localPlayerStatus;
-    private bool networkStarted => Service != null && Service.networkStarted;
-    private Dictionary<NetPeer, GameObject> remoteCharacters => Service?.remoteCharacters;
-    private Dictionary<NetPeer, PlayerStatus> playerStatuses => Service?.playerStatuses;
-    private Dictionary<string, GameObject> clientRemoteCharacters => Service?.clientRemoteCharacters;
+    private bool IsServer => Mod != null && Mod.IsServer;
+    private NetManager netManager => Mod?.netManager;
+    private NetDataWriter writer => Mod?.writer;
+    private NetPeer connectedPeer => Mod?.connectedPeer;
+    private PlayerStatus localPlayerStatus => Mod?.localPlayerStatus;
+    private bool networkStarted => Mod != null && Mod.networkStarted;
+    private Dictionary<NetPeer, GameObject> remoteCharacters => Mod?.remoteCharacters;
+    private Dictionary<NetPeer, PlayerStatus> playerStatuses => Mod?.playerStatuses;
+    private Dictionary<string, GameObject> clientRemoteCharacters => Mod?.clientRemoteCharacters;
 
     
     

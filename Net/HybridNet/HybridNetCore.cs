@@ -56,8 +56,8 @@ public static class HybridNetCore
     
     public static void Send<T>(T message, NetPeer target = null, DeliveryMethod? deliveryOverride = null) where T : IHybridMessage
     {
-        var service = NetService.Instance;
-        if (service == null) return;
+        var mod = ModBehaviourF.Instance;
+        if (mod == null) return;
         
         var relevantPeers = new List<NetPeer>();
         
@@ -65,9 +65,9 @@ public static class HybridNetCore
         {
             relevantPeers.Add(target);
         }
-        else if (service.IsServer)
+        else if (mod.IsServer)
         {
-            foreach (var peer in service.playerStatuses.Keys)
+            foreach (var peer in mod.playerStatuses.Keys)
             {
                 if (_interestManager.ShouldSend(message, peer))
                     relevantPeers.Add(peer);
@@ -75,8 +75,8 @@ public static class HybridNetCore
         }
         else
         {
-            if (service.connectedPeer != null)
-                relevantPeers.Add(service.connectedPeer);
+            if (mod.connectedPeer != null)
+                relevantPeers.Add(mod.connectedPeer);
         }
         
         if (relevantPeers.Count == 0) return;
@@ -91,7 +91,7 @@ public static class HybridNetCore
         
         var delivery = deliveryOverride ?? GetDeliveryMethod(message.Priority);
         
-        var writer = service.writer;
+        var writer = mod.writer;
         writer.Reset();
  
         writer.Put((byte)mode);
@@ -101,9 +101,9 @@ public static class HybridNetCore
         
         foreach (var peer in relevantPeers)
         {
-            if (!string.IsNullOrEmpty(service._relayRoomId))
+            if (!string.IsNullOrEmpty(mod._relayRoomId))
             {
-                SendViaRelay(service, writer.Data, writer.Length, delivery);
+                SendViaRelay(mod, writer.Data, writer.Length, delivery);
             }
             else
             {
@@ -179,11 +179,11 @@ public static class HybridNetCore
         };
     }
     
-    private static void SendViaRelay(NetService service, byte[] data, int length, DeliveryMethod delivery)
+    private static void SendViaRelay(ModBehaviourF mod, byte[] data, int length, DeliveryMethod delivery)
     {
         try
         {
-            var roomIdBytes = System.Text.Encoding.UTF8.GetBytes(service._relayRoomId.PadRight(36));
+            var roomIdBytes = System.Text.Encoding.UTF8.GetBytes(mod._relayRoomId.PadRight(36));
             var relayData = new byte[36 + length];
             System.Array.Copy(roomIdBytes, 0, relayData, 0, 36);
             System.Array.Copy(data, 0, relayData, 36, length);
