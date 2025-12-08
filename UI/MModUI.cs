@@ -156,57 +156,52 @@ public class MModUI : MonoBehaviour
         public static readonly Color Divider = new Color(1f, 1f, 1f, 0.08f);
     }
 
+    // Mod instance
+    private NetManager netManager => Mod?.netManager;
+    private NetDataWriter writer => Mod?.writer;
+    private NetPeer connectedPeer => Mod?.connectedPeer;
+    private PlayerStatus localPlayerStatus => Mod?.localPlayerStatus;
+    private bool networkStarted => Mod != null && Mod.networkStarted;
 
+    private List<string> hostList => Mod?.hostList ?? _hostList;
+    private HashSet<string> hostSet => Mod?.hostSet ?? _hostSet;
 
-
-
-
-    private NetManager netManager => Service?.netManager;
-    private NetDataWriter writer => Service?.writer;
-    private NetPeer connectedPeer => Service?.connectedPeer;
-    private PlayerStatus localPlayerStatus => Service?.localPlayerStatus;
-    private bool networkStarted => Service != null && Service.networkStarted;
-
-    private List<string> hostList => Service?.hostList ?? _hostList;
-    private HashSet<string> hostSet => Service?.hostSet ?? _hostSet;
-
-    private Dictionary<NetPeer, GameObject> remoteCharacters => Service?.remoteCharacters;
-    private Dictionary<NetPeer, PlayerStatus> playerStatuses => Service?.playerStatuses;
-    private Dictionary<string, GameObject> clientRemoteCharacters => Service?.clientRemoteCharacters;
-    private Dictionary<string, PlayerStatus> clientPlayerStatuses => Service?.clientPlayerStatuses;
+    private Dictionary<NetPeer, GameObject> remoteCharacters => Mod?.remoteCharacters;
+    private Dictionary<NetPeer, PlayerStatus> playerStatuses => Mod?.playerStatuses;
+    private Dictionary<string, GameObject> clientRemoteCharacters => Mod?.clientRemoteCharacters;
+    private Dictionary<string, PlayerStatus> clientPlayerStatuses => Mod?.clientPlayerStatuses;
 
     // Steam lobby
     internal SteamLobbyManager LobbyManager => SteamLobbyManager.Instance;
-    internal NetworkTransportMode TransportMode => Service?.TransportMode ?? NetworkTransportMode.Direct;
 
-    // Net service
-    internal NetService Service => NetService.Instance;
+    // Mod instance
+    internal ModBehaviourF Mod => ModBehaviourF.Instance;
     [System.Obsolete("Client is never server. Headless server handles all server logic.")]
     internal bool IsServer => false;
-    internal int port => Service?.port ?? _port;
-    internal string status => Service?.status ?? _status;
+    internal int port => _port;
+    internal string status => _status;
     internal string manualIP
     {
-        get => Service?.manualIP ?? _manualIP;
+        get => Mod?.manualIP ?? _manualIP;
         set
         {
             _manualIP = value;
-            if (Service != null) Service.manualIP = value;
+            if (Mod != null) Mod.manualIP = value;
         }
     }
     internal string manualPort
     {
-        get => Service?.manualPort ?? _manualPort;
+        get => Mod?.manualPort ?? _manualPort;
         set
         {
             _manualPort = value;
-            if (Service != null) Service.manualPort = value;
+            if (Mod != null) Mod.manualPort = value;
         }
     }
 
     private void Update()
     {
-        
+        // Localization
         CoopLocalization.CheckLanguageChange();
 
         
