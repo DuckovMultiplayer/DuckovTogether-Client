@@ -880,7 +880,7 @@ public class MModUI : MonoBehaviour
     {
         
         bool isActiveServer = IsServer && networkStarted;
-        bool isSteamMode = TransportMode == NetworkTransportMode.SteamP2P;
+        bool isSteamMode = false;
         bool isInSteamLobby = isSteamMode && LobbyManager != null && LobbyManager.IsInLobby;
 
         if (_components?.ModeText != null)
@@ -1598,7 +1598,7 @@ public class MModUI : MonoBehaviour
             }
 
             
-            if (displayName == pid && TransportMode == NetworkTransportMode.SteamP2P && SteamManager.Initialized && LobbyManager != null && LobbyManager.IsInLobby)
+            if (displayName == pid && SteamManager.Initialized && LobbyManager != null && LobbyManager.IsInLobby)
             {
                 try
                 {
@@ -2639,48 +2639,21 @@ public class MModUI : MonoBehaviour
 
     private void UpdateTransportModePanels()
     {
-        
-        if (_components?.DirectModePanel != null && _components?.SteamModePanel != null)
-        {
-            _components.DirectModePanel.SetActive(TransportMode == NetworkTransportMode.Direct);
-            _components.SteamModePanel.SetActive(TransportMode == NetworkTransportMode.SteamP2P);
-        }
-
-        
-        if (_components?.DirectServerListArea != null && _components?.SteamServerListArea != null)
-        {
-            
-            if (_components.DirectServerListArea == _components.SteamServerListArea)
-            {
-                
-                _components.DirectServerListArea.SetActive(true);
-            }
-            else
-            {
-                
-                _components.DirectServerListArea.SetActive(TransportMode == NetworkTransportMode.Direct);
-                _components.SteamServerListArea.SetActive(TransportMode == NetworkTransportMode.SteamP2P);
-            }
-        }
+        if (_components?.DirectModePanel != null)
+            _components.DirectModePanel.SetActive(true);
+        if (_components?.SteamModePanel != null)
+            _components.SteamModePanel.SetActive(false);
+        if (_components?.DirectServerListArea != null)
+            _components.DirectServerListArea.SetActive(true);
+        if (_components?.SteamServerListArea != null)
+            _components.SteamServerListArea.SetActive(false);
     }
 
 
     private void UpdateLobbyOptionsFromUI()
     {
-        if (Service == null) return;
-
         var maxPlayers = Mathf.Clamp(_steamLobbyMaxPlayers, 2, 16);
         _steamLobbyMaxPlayers = maxPlayers;
-
-        var options = new SteamLobbyOptions
-        {
-            LobbyName = _steamLobbyName,
-            Password = _steamLobbyPassword,
-            Visibility = _steamLobbyFriendsOnly ? SteamLobbyVisibility.FriendsOnly : SteamLobbyVisibility.Public,
-            MaxPlayers = maxPlayers
-        };
-
-        Service.ConfigureLobbyOptions(options);
     }
 
     #endregion
@@ -2834,37 +2807,6 @@ public class MModUI : MonoBehaviour
                 LoggerHelper.LogWarning("[JSON] 输入内容为空");
                 SetStatusText("[!] 请输入 JSON 消息", ModernColors.Warning);
                 return;
-            }
-
-            LoggerHelper.Log($"[JSON] 准备发送消息:\n{json}");
-
-            
-            if (Service != null && Service.connectedPeer != null)
-            {
-                
-                JsonMessage.SendToHost(json, LiteNetLib.DeliveryMethod.ReliableOrdered);
-                LoggerHelper.Log("[JSON] 客户端已发送 JSON 消息到主机");
-                SetStatusText("[OK] JSON 消息已发送", ModernColors.Success);
-            }
-            else if (Service != null && Service.IsServer)
-            {
-                
-                var writer = Service.writer;
-                writer.Reset();
-                writer.Put(json);
-                Service.netManager.SendToAll(writer, LiteNetLib.DeliveryMethod.ReliableOrdered);
-                LoggerHelper.Log("[JSON] 主机已广播 JSON 消息");
-                SetStatusText("[OK] JSON 消息已广播", ModernColors.Success);
-            }
-            else
-            {
-                LoggerHelper.LogWarning("[JSON] 未连接到网络");
-                SetStatusText("[!] 未连接到网络", ModernColors.Warning);
-            }
-
-            
-            _components.JsonInputField.text = "";
-        }
         catch (Exception ex)
         {
             LoggerHelper.LogError($"[JSON] 发送消息失败: {ex.Message}\n{ex.StackTrace}");
