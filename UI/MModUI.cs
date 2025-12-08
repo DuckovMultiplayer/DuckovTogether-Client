@@ -334,24 +334,17 @@ public class MModUI : MonoBehaviour
         _components = new MModUIComponents();
         _layoutBuilder = new MModUILayoutBuilder(this, _components);
 
-        var svc = Service;
-        if (svc != null)
+        var mod = Mod;
+        if (mod != null)
         {
-            _manualIP = svc.manualIP;
-            _manualPort = svc.manualPort;
-            _status = svc.status;
-            _port = svc.port;
+            _manualIP = mod.manualIP;
+            _manualPort = mod.manualPort;
+            _status = mod.status;
+            _port = mod.port;
             _hostList.Clear();
             _hostSet.Clear();
-            _hostList.AddRange(svc.hostList);
-            foreach (var host in svc.hostSet) _hostSet.Add(host);
-
-            
-            var options = svc.LobbyOptions;
-            _steamLobbyName = options.LobbyName;
-            _steamLobbyPassword = options.Password;
-            _steamLobbyFriendsOnly = options.Visibility == SteamLobbyVisibility.FriendsOnly;
-            _steamLobbyMaxPlayers = Mathf.Clamp(options.MaxPlayers, 2, 16);
+            _hostList.AddRange(mod.hostList);
+            foreach (var host in mod.hostSet) _hostSet.Add(host);
         }
 
         
