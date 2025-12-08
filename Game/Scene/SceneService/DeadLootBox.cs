@@ -29,11 +29,6 @@ public class DeadLootBox : MonoBehaviour
     public static DeadLootBox Instance;
 
     private NetService Service => NetService.Instance;
-    private bool IsServer => Service != null && Service.IsServer;
-    private NetManager netManager => Service?.netManager;
-    private NetDataWriter writer => Service?.writer;
-    private NetPeer connectedPeer => Service?.connectedPeer;
-    private PlayerStatus localPlayerStatus => Service?.localPlayerStatus;
     private bool networkStarted => Service != null && Service.networkStarted;
 
 
@@ -208,101 +203,5 @@ public class DeadLootBox : MonoBehaviour
         }
 
         return null;
-    }
-
-    public void Server_OnDeadLootboxSpawned(InteractableLootbox box, CharacterMainControl whoDied)
-    {
-        if (!IsServer || box == null) return;
-        try
-        {
-            var lootUid = LootManager.Instance._nextLootUid++;
-            var inv = box.Inventory;
-            if (inv)
-            {
-                LootManager.Instance._srvLootByUid[lootUid] = inv;
-                
-                var registry = Utils.LootContainerRegistry.Instance;
-                if (registry != null)
-                {
-                    registry.RegisterContainerWithLootUid(box, lootUid);
-                    Debug.Log($"[DeadLootBox] 主机注册AI掉落箱: lootUid={lootUid}");
-                }
-            }
-
-            var aiId = 0;
-            if (whoDied)
-            {
-                var tag = whoDied.GetComponent<NetAiTag>();
-                if (tag != null) aiId = tag.aiId;
-                if (aiId == 0)
-                {
-                    foreach (var kv in AITool.aiById)
-                    {
-                        if (kv.Value == whoDied)
-                        {
-                            aiId = kv.Key;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (inv != null)
-            {
-                inv.NeedInspection = false;
-                try
-                {
-                    Traverse.Create(inv).Field<bool>("hasBeenInspectedInLootBox").Value = true;
-                }
-                catch { }
-
-                for (var i = 0; i < inv.Content.Count; ++i)
-                {
-                    var it = inv.GetItemAt(i);
-                    if (it) it.Inspected = true;
-                }
-            }
-
-            var msg = new Net.HybridNet.DeadLootSpawnMessage 
-            { 
-                AiId = aiId, 
-                LootUid = lootUid, 
-                Position = box.transform.position, 
-                Rotation = box.transform.rotation 
-            };
-            Net.HybridNet.HybridNetCore.Send(msg);
-
-            if (EAGER_BROADCAST_LOOT_STATE_ON_SPAWN)
-                StartCoroutine(RebroadcastDeadLootStateAfterFill(box));
-        }
-        catch (Exception e)
-        {
-            Debug.LogError("[LOOT] Server_OnDeadLootboxSpawned failed: " + e);
-        }
-    }
-
-    public IEnumerator RebroadcastDeadLootStateAfterFill(InteractableLootbox box)
-    {
-        if (!EAGER_BROADCAST_LOOT_STATE_ON_SPAWN) yield break;
-
-        yield return null;
-        yield return null;
-
-        if (box && box.Inventory)
-        {
-            var inv = box.Inventory;
-            Debug.Log($"[DEAD-LOOT] 准备广播战利品盒子内容，物品数量: {inv.Content.Count}");
-
-            for (int i = 0; i < inv.Content.Count; i++)
-            {
-                var item = inv.GetItemAt(i);
-                if (item != null)
-                {
-                    Debug.Log($"[DEAD-LOOT] 物品 {i}: {item.DisplayName} (TypeID={item.TypeID})");
-                }
-            }
-
-            COOPManager.LootNet.Server_SendLootboxState(null, inv);
-        }
     }
 }
