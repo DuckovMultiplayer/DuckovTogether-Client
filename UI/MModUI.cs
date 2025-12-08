@@ -2807,6 +2807,24 @@ public class MModUI : MonoBehaviour
                 LoggerHelper.LogWarning("[JSON] 输入内容为空");
                 SetStatusText("[!] 请输入 JSON 消息", ModernColors.Warning);
                 return;
+            }
+
+            LoggerHelper.Log($"[JSON] 准备发送消息:\n{json}");
+
+            if (Mod != null && Mod.connectedPeer != null)
+            {
+                JsonMessage.SendToHost(json, LiteNetLib.DeliveryMethod.ReliableOrdered);
+                LoggerHelper.Log("[JSON] 客户端已发送 JSON 消息到主机");
+                SetStatusText("[OK] JSON 消息已发送", ModernColors.Success);
+            }
+            else
+            {
+                LoggerHelper.LogWarning("[JSON] 未连接到网络");
+                SetStatusText("[!] 未连接到网络", ModernColors.Warning);
+            }
+
+            _components.JsonInputField.text = "";
+        }
         catch (Exception ex)
         {
             LoggerHelper.LogError($"[JSON] 发送消息失败: {ex.Message}\n{ex.StackTrace}");
@@ -2843,14 +2861,14 @@ public class MModUI : MonoBehaviour
 
     internal void DebugPrintRemoteCharacters()
     {
-        if (Service == null)
+        if (Mod == null)
         {
-            LoggerHelper.LogWarning("[Debug] NetService 未初始化");
+            LoggerHelper.LogWarning("[Debug] Mod 未初始化");
             SetStatusText("[!] 网络服务未初始化", ModernColors.Warning);
             return;
         }
 
-        var isServer = Service.IsServer;
+        var isServer = Mod.IsServer;
         var timestamp = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
 
         LoggerHelper.Log($"========== Network Debug Info ==========");
@@ -2863,17 +2881,17 @@ public class MModUI : MonoBehaviour
             ["DebugVersion"] = "v2.0",  
             ["Timestamp"] = timestamp,
             ["Role"] = isServer ? "Server" : "Client",
-            ["NetworkStarted"] = Service.networkStarted,
-            ["Port"] = Service.port,
-            ["Status"] = Service.status,
-            ["TransportMode"] = Service.TransportMode.ToString()
+            ["NetworkStarted"] = Mod.networkStarted,
+            ["Port"] = Mod.port,
+            ["Status"] = Mod.status,
+            ["TransportMode"] = Mod.TransportMode.ToString()
         };
 
         
         var localPlayerData = new Dictionary<string, object>();
-        if (Service.localPlayerStatus != null)
+        if (Mod.localPlayerStatus != null)
         {
-            var lps = Service.localPlayerStatus;
+            var lps = Mod.localPlayerStatus;
             localPlayerData["EndPoint"] = lps.EndPoint ?? "null";
             localPlayerData["PlayerName"] = lps.PlayerName ?? "null";
             localPlayerData["IsInGame"] = lps.IsInGame;
@@ -2884,10 +2902,10 @@ public class MModUI : MonoBehaviour
             localPlayerData["CustomFaceJson"] = string.IsNullOrEmpty(lps.CustomFaceJson) ? "null" : $"[{lps.CustomFaceJson.Length} chars]";
             
             
-            if (!isServer && Service.connectedPeer != null)
+            if (!isServer && Mod.connectedPeer != null)
             {
-                localPlayerData["ConnectedPeerEndPoint"] = Service.connectedPeer.EndPoint?.ToString() ?? "null";
-                localPlayerData["ConnectedPeerId"] = Service.connectedPeer.Id;
+                localPlayerData["ConnectedPeerEndPoint"] = Mod.connectedPeer.EndPoint?.ToString() ?? "null";
+                localPlayerData["ConnectedPeerId"] = Mod.connectedPeer.Id;
             }
         }
         else
@@ -2962,15 +2980,15 @@ public class MModUI : MonoBehaviour
             };
             
             
-            if (isServer && Service.remoteCharacters != null)
+            if (isServer && Mod.remoteCharacters != null)
             {
-                charInfo["InRemoteCharacters"] = Service.remoteCharacters.Values.Contains(charGO);
+                charInfo["InRemoteCharacters"] = Mod.remoteCharacters.Values.Contains(charGO);
             }
-            else if (!isServer && Service.clientRemoteCharacters != null)
+            else if (!isServer && Mod.clientRemoteCharacters != null)
             {
-                charInfo["InClientRemoteCharacters"] = Service.clientRemoteCharacters.Values.Contains(charGO);
+                charInfo["InClientRemoteCharacters"] = Mod.clientRemoteCharacters.Values.Contains(charGO);
                 
-                var playerId = Service.clientRemoteCharacters.FirstOrDefault(kv => kv.Value == charGO).Key;
+                var playerId = Mod.clientRemoteCharacters.FirstOrDefault(kv => kv.Value == charGO).Key;
                 charInfo["PlayerId"] = playerId ?? "null";
             }
             
@@ -2987,10 +3005,10 @@ public class MModUI : MonoBehaviour
         {
             
             var remoteCharsData = new List<object>();
-            if (Service.remoteCharacters != null)
+            if (Mod.remoteCharacters != null)
             {
                 var index = 1;
-                foreach (var kv in Service.remoteCharacters)
+                foreach (var kv in Mod.remoteCharacters)
                 {
                     var peer = kv.Key;
                     var go = kv.Value;
@@ -3109,15 +3127,15 @@ public class MModUI : MonoBehaviour
             }
             debugData["RemoteCharacters"] = new Dictionary<string, object>
             {
-                ["Count"] = Service.remoteCharacters?.Count ?? 0,
+                ["Count"] = Mod.remoteCharacters?.Count ?? 0,
                 ["Data"] = remoteCharsData
             };
 
             
             var playerStatusesData = new List<object>();
-            if (Service.playerStatuses != null)
+            if (Mod.playerStatuses != null)
             {
-                foreach (var kv in Service.playerStatuses)
+                foreach (var kv in Mod.playerStatuses)
                 {
                     var peer = kv.Key;
                     var status = kv.Value;
@@ -3137,15 +3155,15 @@ public class MModUI : MonoBehaviour
             }
             debugData["PlayerStatuses"] = new Dictionary<string, object>
             {
-                ["Count"] = Service.playerStatuses?.Count ?? 0,
+                ["Count"] = Mod.playerStatuses?.Count ?? 0,
                 ["Data"] = playerStatusesData
             };
 
             
             var connectedPeers = new List<object>();
-            if (Service.netManager != null && Service.netManager.ConnectedPeerList != null)
+            if (Mod.netManager != null && Mod.netManager.ConnectedPeerList != null)
             {
-                foreach (var peer in Service.netManager.ConnectedPeerList)
+                foreach (var peer in Mod.netManager.ConnectedPeerList)
                 {
                     connectedPeers.Add(new Dictionary<string, object>
                     {
@@ -3167,10 +3185,10 @@ public class MModUI : MonoBehaviour
         {
             
             var clientRemoteCharsData = new List<object>();
-            if (Service.clientRemoteCharacters != null)
+            if (Mod.clientRemoteCharacters != null)
             {
                 var index = 1;
-                foreach (var kv in Service.clientRemoteCharacters)
+                foreach (var kv in Mod.clientRemoteCharacters)
                 {
                     var playerId = kv.Key;
                     var go = kv.Value;
@@ -3283,15 +3301,15 @@ public class MModUI : MonoBehaviour
                         
                         
                         var isLocalPlayerDuplicate = false;
-                        if (Service.connectedPeer != null)
+                        if (Mod.connectedPeer != null)
                         {
-                            var myNetworkId = Service.connectedPeer.EndPoint?.ToString();
+                            var myNetworkId = Mod.connectedPeer.EndPoint?.ToString();
                             isLocalPlayerDuplicate = playerId == myNetworkId;
                         }
                         charData["IsLocalPlayerDuplicate"] = isLocalPlayerDuplicate;
                         
                         
-                        charData["IsSelfId_Check"] = Service.IsSelfId(playerId);
+                        charData["IsSelfId_Check"] = Mod.IsSelfId(playerId);
                     }
 
                     clientRemoteCharsData.Add(charData);
@@ -3299,15 +3317,15 @@ public class MModUI : MonoBehaviour
             }
             debugData["ClientRemoteCharacters"] = new Dictionary<string, object>
             {
-                ["Count"] = Service.clientRemoteCharacters?.Count ?? 0,
+                ["Count"] = Mod.clientRemoteCharacters?.Count ?? 0,
                 ["Data"] = clientRemoteCharsData
             };
 
             
             var clientPlayerStatusesData = new List<object>();
-            if (Service.clientPlayerStatuses != null)
+            if (Mod.clientPlayerStatuses != null)
             {
-                foreach (var kv in Service.clientPlayerStatuses)
+                foreach (var kv in Mod.clientPlayerStatuses)
                 {
                     var playerId = kv.Key;
                     var status = kv.Value;
@@ -3326,18 +3344,18 @@ public class MModUI : MonoBehaviour
             }
             debugData["ClientPlayerStatuses"] = new Dictionary<string, object>
             {
-                ["Count"] = Service.clientPlayerStatuses?.Count ?? 0,
+                ["Count"] = Mod.clientPlayerStatuses?.Count ?? 0,
                 ["Data"] = clientPlayerStatusesData
             };
 
             
             var connectedPeerData = new Dictionary<string, object>();
-            if (Service.connectedPeer != null)
+            if (Mod.connectedPeer != null)
             {
-                connectedPeerData["EndPoint"] = Service.connectedPeer.EndPoint?.ToString() ?? "null";
-                connectedPeerData["Id"] = Service.connectedPeer.Id;
-                connectedPeerData["Ping"] = Service.connectedPeer.Ping;
-                connectedPeerData["ConnectionState"] = Service.connectedPeer.ConnectionState.ToString();
+                connectedPeerData["EndPoint"] = Mod.connectedPeer.EndPoint?.ToString() ?? "null";
+                connectedPeerData["Id"] = Mod.connectedPeer.Id;
+                connectedPeerData["Ping"] = Mod.connectedPeer.Ping;
+                connectedPeerData["ConnectionState"] = Mod.connectedPeer.ConnectionState.ToString();
             }
             else
             {
@@ -3368,17 +3386,17 @@ public class MModUI : MonoBehaviour
             var createRemoteData = new Dictionary<string, object>();
             
             
-            if (Service.clientRemoteCharacters != null && Service.connectedPeer != null)
+            if (Mod.clientRemoteCharacters != null && Mod.connectedPeer != null)
             {
-                var myNetworkId = Service.connectedPeer.EndPoint?.ToString();
-                var hasSelfDuplicate = Service.clientRemoteCharacters.ContainsKey(myNetworkId);
+                var myNetworkId = Mod.connectedPeer.EndPoint?.ToString();
+                var hasSelfDuplicate = Mod.clientRemoteCharacters.ContainsKey(myNetworkId);
                 createRemoteData["HasSelfDuplicate"] = hasSelfDuplicate;
                 createRemoteData["MyNetworkId"] = myNetworkId ?? "null";
-                createRemoteData["MyLocalPlayerId"] = Service.localPlayerStatus?.EndPoint ?? "null";
+                createRemoteData["MyLocalPlayerId"] = Mod.localPlayerStatus?.EndPoint ?? "null";
                 
                 
                 var allPlayerIds = new List<string>();
-                foreach (var kv in Service.clientRemoteCharacters)
+                foreach (var kv in Mod.clientRemoteCharacters)
                 {
                     allPlayerIds.Add(kv.Key);
                 }
@@ -3418,19 +3436,19 @@ public class MModUI : MonoBehaviour
         LoggerHelper.Log($"--- Summary ---");
         LoggerHelper.Log($"  Role: {debugData["Role"]}");
         LoggerHelper.Log($"  NetworkStarted: {debugData["NetworkStarted"]}");
-        LoggerHelper.Log($"  LocalPlayer: {(Service.localPlayerStatus != null ? Service.localPlayerStatus.EndPoint : "null")}");
+        LoggerHelper.Log($"  LocalPlayer: {(Mod.localPlayerStatus != null ? Mod.localPlayerStatus.EndPoint : "null")}");
         
         if (isServer)
         {
-            LoggerHelper.Log($"  RemoteCharacters: {Service.remoteCharacters?.Count ?? 0}");
-            LoggerHelper.Log($"  PlayerStatuses: {Service.playerStatuses?.Count ?? 0}");
-            LoggerHelper.Log($"  ConnectedPeers: {Service.netManager?.ConnectedPeerList?.Count ?? 0}");
+            LoggerHelper.Log($"  RemoteCharacters: {Mod.remoteCharacters?.Count ?? 0}");
+            LoggerHelper.Log($"  PlayerStatuses: {Mod.playerStatuses?.Count ?? 0}");
+            LoggerHelper.Log($"  ConnectedPeers: {Mod.netManager?.ConnectedPeerList?.Count ?? 0}");
         }
         else
         {
-            LoggerHelper.Log($"  ClientRemoteCharacters: {Service.clientRemoteCharacters?.Count ?? 0}");
-            LoggerHelper.Log($"  ClientPlayerStatuses: {Service.clientPlayerStatuses?.Count ?? 0}");
-            LoggerHelper.Log($"  ConnectedPeer: {(Service.connectedPeer != null ? "Connected" : "null")}");
+            LoggerHelper.Log($"  ClientRemoteCharacters: {Mod.clientRemoteCharacters?.Count ?? 0}");
+            LoggerHelper.Log($"  ClientPlayerStatuses: {Mod.clientPlayerStatuses?.Count ?? 0}");
+            LoggerHelper.Log($"  ConnectedPeer: {(Mod.connectedPeer != null ? "Connected" : "null")}");
         }
 
         
@@ -3448,8 +3466,8 @@ public class MModUI : MonoBehaviour
         }
 
         var summary = isServer 
-            ? $"主机: {Service.remoteCharacters?.Count ?? 0} 个远程玩家" 
-            : $"客户端: {Service.clientRemoteCharacters?.Count ?? 0} 个远程玩家";
+            ? $"主机: {Mod.remoteCharacters?.Count ?? 0} 个远程玩家" 
+            : $"客户端: {Mod.clientRemoteCharacters?.Count ?? 0} 个远程玩家";
         SetStatusText($"[OK] 已输出网络状态 ({summary})", ModernColors.Success);
     }
 
@@ -3457,7 +3475,7 @@ public class MModUI : MonoBehaviour
     {
         if (Service == null) return;
 
-        Service.SetTransportMode(newMode);
+        Mod.SetTransportMode(newMode);
         UpdateTransportModePanels();
 
         if (newMode == NetworkTransportMode.SteamP2P && LobbyManager != null)
@@ -3480,7 +3498,7 @@ public class MModUI : MonoBehaviour
         if (manager.IsInLobby)
         {
             
-            NetService.Instance?.StopNetwork();
+            NetMod.Instance?.StopNetwork();
             manager.LeaveLobby();  
 
             SetStatusText("[OK] " + CoopLocalization.Get("ui.steam.lobby.left"), ModernColors.Info);
@@ -3489,7 +3507,7 @@ public class MModUI : MonoBehaviour
         {
             
             UpdateLobbyOptionsFromUI();
-            NetService.Instance?.StartNetwork(true);
+            NetMod.Instance?.StartNetwork(true);
             SetStatusText("[*] " + CoopLocalization.Get("ui.steam.lobby.creating"), ModernColors.Info);
         }
     }
@@ -3614,7 +3632,7 @@ public class MModUI : MonoBehaviour
         if (netManager == null || !netManager.IsRunning || IsServer || !networkStarted)
         {
             LoggerHelper.Log("[MModUI] 启动客户端网络模式");
-            NetService.Instance?.StartNetwork(false);
+            NetMod.Instance?.StartNetwork(false);
         }
 
         var password = lobby.RequiresPassword ? _steamJoinPassword : string.Empty;
