@@ -28,7 +28,7 @@ internal static class Patch_Lootbox_StartLoot_RequestState
         if (!__result) return;
 
         var m = ModBehaviourF.Instance;
-        if (m == null || !m.networkStarted || m.IsServer) return;
+        if (m == null || !m.networkStarted) return;
 
         var inv = __instance ? __instance.Inventory : null;
         if (inv == null) return;
@@ -161,7 +161,7 @@ internal static class Patch_Lootbox_CreateFromItem_BlockClient
     private static bool Prefix()
     {
         var mod = ModBehaviourF.Instance;
-        if (mod != null && mod.networkStarted && !mod.IsServer && DeadLootSpawnContext.InOnDead != null)
+        if (mod != null && mod.networkStarted && DeadLootSpawnContext.InOnDead != null)
             return false; // 客户端处于OnDead路径→禁止本地创建
         return true;
     }
@@ -176,7 +176,7 @@ internal static class Patch_Lootbox_CreateFromItem_EnsureAISlots
     {
         var mod = ModBehaviourF.Instance;
         var dead = DeadLootSpawnContext.InOnDead;
-        if (mod == null || !mod.networkStarted || !mod.IsServer) return;
+        return;
         if (dead == null || item == null) return;
 
         try
@@ -271,7 +271,7 @@ internal static class Patch_Lootbox_CreateFromItem_DeferredSpawn
     {
         var mod = ModBehaviourF.Instance;
         var dead = DeadLootSpawnContext.InOnDead;
-        if (mod == null || !mod.networkStarted || !mod.IsServer) return;
+        return;
         if (dead == null || !__result) return;
 
         mod.StartCoroutine(DeferredSpawn(__result, dead));
@@ -331,8 +331,8 @@ internal static class Patch_Lootbox_CreateFromItem_DeferOnServerFromOnDead
         var mod = ModBehaviourF.Instance;
         var dead = DeadLootSpawnContext.InOnDead;
 
-        // 仅在：联机 + 服务端 + 正处于 OnDead 路径 时延帧，其余情况不动
-        if (_bypassDefer || mod == null || !mod.networkStarted || !mod.IsServer || dead == null)
+        // 仅在：联机 + 正处于 OnDead 路径 时延帧，其余情况不动
+        if (_bypassDefer || mod == null || !mod.networkStarted || dead == null)
             return true;
 
         mod.StartCoroutine(DeferOneFrame(
@@ -379,7 +379,7 @@ internal static class Patch_Lootbox_StartLoot_RequestState_AndPrime
     private static void Postfix(InteractableLootbox __instance)
     {
         var m = ModBehaviourF.Instance;
-        if (m == null || !m.networkStarted || m.IsServer) return;
+        if (m == null || !m.networkStarted) return;
 
         var inv = __instance ? __instance.Inventory : null;
         if (!inv) return;
