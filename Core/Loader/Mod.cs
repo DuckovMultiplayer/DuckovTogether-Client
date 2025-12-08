@@ -146,7 +146,8 @@ public partial class ModBehaviourF : MonoBehaviour
 
     private bool isinit2;
     private NetService Service => NetService.Instance;
-    public bool IsServer => Service != null && Service.IsServer;
+    [System.Obsolete("Client is never server. Headless server handles all server logic.")]
+    public bool IsServer => false;
     public NetManager netManager => Service?.netManager;
     public NetDataWriter writer => Service?.writer;
     public NetPeer connectedPeer => Service?.connectedPeer;
@@ -166,10 +167,9 @@ public partial class ModBehaviourF : MonoBehaviour
     public Dictionary<NetPeer, PlayerStatus> playerStatuses => Service?.playerStatuses;
     public Dictionary<string, GameObject> clientRemoteCharacters => Service?.clientRemoteCharacters;
     public Dictionary<string, PlayerStatus> clientPlayerStatuses => Service?.clientPlayerStatuses;
-    public bool ClientLootSetupActive => networkStarted && !IsServer && _clientLootSetupDepth > 0;
+    public bool ClientLootSetupActive => networkStarted && _clientLootSetupDepth > 0;
 
-    
-    public bool IsClient => networkStarted && !IsServer;
+    public bool IsClient => networkStarted;
 
     
 
@@ -394,24 +394,16 @@ public partial class ModBehaviourF : MonoBehaviour
         if (networkStarted)
         {
             netManager.PollEvents();
-
-            
-            if (IsServer)
-            {
-                Service.CheckJoinTimeouts();
-            }
-
             SceneNet.Instance.TrySendSceneReadyOnce();
             if (!isinit2)
             {
                 isinit2 = true;
-                if (!IsServer)
-                    HealthM.Instance.Client_ReportSelfHealth_IfReadyOnce();
+                HealthM.Instance.Client_ReportSelfHealth_IfReadyOnce();
             }
 
             
 
-            if (!IsServer && !isConnecting)
+            if (!isConnecting)
             {
                 broadcastTimer += Time.deltaTime;
                 if (broadcastTimer >= broadcastInterval)
@@ -445,70 +437,13 @@ public partial class ModBehaviourF : MonoBehaviour
                 
             }
 
-            if (
-                !IsServer
-                && !string.IsNullOrEmpty(SceneNet.Instance._sceneReadySidSent)
-                && _envReqSid != SceneNet.Instance._sceneReadySidSent
-            )
+            if (!string.IsNullOrEmpty(SceneNet.Instance._sceneReadySidSent)
+                && _envReqSid != SceneNet.Instance._sceneReadySidSent)
             {
                 _envReqSid = SceneNet.Instance._sceneReadySidSent; 
                 COOPManager.Weather.Client_RequestEnvSync(); 
             }
 
-            if (IsServer)
-            {
-                _aiNameIconTimer += Time.deltaTime;
-                if (_aiNameIconTimer >= AI_NAMEICON_INTERVAL)
-                {
-                    _aiNameIconTimer = 0f;
-
-                    foreach (var kv in AITool.aiById)
-                    {
-                        var id = kv.Key;
-                        var cmc = kv.Value;
-                        if (!cmc)
-                            continue;
-
-                        var pr = cmc.characterPreset;
-                        if (!pr)
-                            continue;
-
-                        var iconType = 0;
-                        var showName = false;
-                        try
-                        {
-                            iconType = (int)FR_IconType(pr);
-                            showName = pr.showName;
-                            
-                            if (iconType == 0 && pr.GetCharacterIcon() != null)
-                                iconType = (int)FR_IconType(pr);
-                        }
-                        catch { }
-
-                        
-                        if (iconType != 0 || showName)
-                            AIName.Server_BroadcastAiNameIcon(id, cmc);
-                    }
-                }
-            }
-
-            
-            if (IsServer)
-            {
-                _envSyncTimer += Time.deltaTime;
-                if (_envSyncTimer >= ENV_SYNC_INTERVAL)
-                {
-                    _envSyncTimer = 0f;
-                    COOPManager.Weather.Server_BroadcastEnvSync();
-                }
-
-                _aiAnimTimer += Time.deltaTime;
-                if (_aiAnimTimer >= AI_ANIM_INTERVAL)
-                {
-                    _aiAnimTimer = 0f;
-                    COOPManager.AIHandle.Server_BroadcastAiAnimations();
-                }
-            }
 
             var burst = 64; 
             while (AITool._aiSceneReady && _pendingAiTrans.Count > 0 && burst-- > 0)
@@ -528,15 +463,6 @@ public partial class ModBehaviourF : MonoBehaviour
             }
         }
 
-        if (networkStarted && IsServer)
-        {
-            _aiTfTimer += Time.deltaTime;
-            if (_aiTfTimer >= AI_TF_INTERVAL)
-            {
-                _aiTfTimer = 0f;
-                COOPManager.AIHandle.Server_BroadcastAiTransforms();
-            }
-        }
 
         LocalPlayerManager.Instance.UpdatePlayerStatuses();
         LocalPlayerManager.Instance.UpdateRemoteCharacters();
@@ -545,23 +471,18 @@ public partial class ModBehaviourF : MonoBehaviour
 
         COOPManager.GrenadeM.ProcessPendingGrenades();
 
-        if (!IsServer)
-            if (CoopTool._cliSelfHpPending && CharacterMainControl.Main != null)
-            {
-                HealthM.Instance.ApplyHealthAndEnsureBar(
-                    CharacterMainControl.Main.gameObject,
-                    CoopTool._cliSelfHpMax,
-                    CoopTool._cliSelfHpCur
-                );
-                CoopTool._cliSelfHpPending = false;
-            }
+        if (CoopTool._cliSelfHpPending && CharacterMainControl.Main != null)
+        {
+            HealthM.Instance.ApplyHealthAndEnsureBar(
+                CharacterMainControl.Main.gameObject,
+                CoopTool._cliSelfHpMax,
+                CoopTool._cliSelfHpCur
+            );
+            CoopTool._cliSelfHpPending = false;
+        }
 
-        if (IsServer)
-            HealthM.Instance.Server_EnsureAllHealthHooks();
-        if (!IsServer)
-            CoopTool.Client_ApplyPendingSelfIfReady();
-        if (!IsServer)
-            HealthM.Instance.Client_ReportSelfHealth_IfReadyOnce();
+        CoopTool.Client_ApplyPendingSelfIfReady();
+        HealthM.Instance.Client_ReportSelfHealth_IfReadyOnce();
 
         
         if (SceneNet.Instance.sceneVoteActive)
@@ -570,24 +491,8 @@ public partial class ModBehaviourF : MonoBehaviour
             {
                 Debug.Log($"[VOTE-KEY] 检测到按键 {readyKey}，当前准备状态: {SceneNet.Instance.localReady}");
                 SceneNet.Instance.localReady = !SceneNet.Instance.localReady;
-            if (IsServer)
-            {
-                
-                var myId = Service.GetPlayerId(null);
-                SceneVoteMessage.Host_HandleReadyToggle(myId, SceneNet.Instance.localReady);
-            }
-            else
-            {
-                
                 SceneVoteMessage.Client_ToggleReady(SceneNet.Instance.localReady);
             }
-            }
-        }
-
-        
-        if (IsServer)
-        {
-            SceneVoteMessage.Host_Update();
         }
 
         if (networkStarted)
@@ -599,17 +504,10 @@ public partial class ModBehaviourF : MonoBehaviour
                 COOPManager.Weather.Client_RequestEnvSync();
             }
 
-            
-            if (IsServer)
-                HealthM.Instance.Server_EnsureAllHealthHooks();
-
-            
-            if (!IsServer && !HealthTool._cliInitHpReported)
+            if (!HealthTool._cliInitHpReported)
                 HealthM.Instance.Client_ReportSelfHealth_IfReadyOnce();
 
-            
-            if (!IsServer)
-                HealthTool.Client_HookSelfHealth();
+            HealthTool.Client_HookSelfHealth();
         }
 
         if (Spectator.Instance._spectatorActive)
@@ -628,35 +526,13 @@ public partial class ModBehaviourF : MonoBehaviour
 
                     
                     string peerScene = null;
-                    if (IsServer)
-                    {
-                        foreach (var kv in remoteCharacters)
-                            if (
-                                kv.Value != null
-                                && kv.Value.GetComponent<CharacterMainControl>() == c
-                            )
-                            {
-                                if (
-                                    !SceneM._srvPeerScene.TryGetValue(kv.Key, out peerScene)
-                                    && playerStatuses.TryGetValue(kv.Key, out var st)
-                                )
-                                    peerScene = st?.SceneId;
-                                break;
-                            }
-                    }
-                    else
-                    {
-                        foreach (var kv in clientRemoteCharacters)
-                            if (
-                                kv.Value != null
-                                && kv.Value.GetComponent<CharacterMainControl>() == c
-                            )
-                            {
-                                if (clientPlayerStatuses.TryGetValue(kv.Key, out var st))
-                                    peerScene = st?.SceneId;
-                                break;
-                            }
-                    }
+                    foreach (var kv in clientRemoteCharacters)
+                        if (kv.Value != null && kv.Value.GetComponent<CharacterMainControl>() == c)
+                        {
+                            if (clientPlayerStatuses.TryGetValue(kv.Key, out var st))
+                                peerScene = st?.SceneId;
+                            break;
+                        }
 
                     return Spectator.AreSameMap(mySceneId, peerScene);
                 })
@@ -799,19 +675,7 @@ public partial class ModBehaviourF : MonoBehaviour
             if (!string.IsNullOrEmpty(scene.name) && scene.name != "MainMenu" && scene.name != "LoadingScreen")
             {
                 Debug.Log("[MOD-Cleanup] 清理远程玩家数据...");
-                if (IsServer && remoteCharacters != null)
-                {
-                    foreach (var kv in remoteCharacters.ToList())
-                    {
-                        if (kv.Value != null)
-                        {
-                            try { Object.Destroy(kv.Value); } catch { }
-                        }
-                    }
-                    remoteCharacters.Clear();
-                }
-
-                if (!IsServer && clientRemoteCharacters != null)
+                if (clientRemoteCharacters != null)
                 {
                     foreach (var kv in clientRemoteCharacters.ToList())
                     {
@@ -848,8 +712,6 @@ public partial class ModBehaviourF : MonoBehaviour
 
     private void LevelManager_OnAfterLevelInitialized()
     {
-        if (IsServer && networkStarted)
-            SceneNet.Instance.Server_SceneGateAsync().Forget();
     }
 
     private void LevelManager_OnLevelInitialized()
@@ -896,31 +758,12 @@ public partial class ModBehaviourF : MonoBehaviour
         }
 
         
-        
-        if (Utils.AsyncMessageQueue.Instance != null && !IsServer)
+        if (Utils.AsyncMessageQueue.Instance != null)
         {
             Utils.AsyncMessageQueue.Instance.EnableBulkMode();
         }
 
-        
-        if (!IsServer)
-        {
-           
-        }
-
-        
-        
-        
-        
-        if (IsServer)
-        {
-            SceneNet.Instance._srvSceneGateOpen = false;
-            
-        }
-        else
-        {
-            SceneNet.Instance._cliSceneGateReleased = false;
-        }
+        SceneNet.Instance._cliSceneGateReleased = false;
 
         
 
@@ -928,30 +771,15 @@ public partial class ModBehaviourF : MonoBehaviour
         {
             Debug.Log("[MOD] 注册同步任务");
             
-            if (!IsServer)
-            {
-                syncUI.RegisterTask("weather", "环境同步");
-                syncUI.RegisterTask("player_health", "玩家状态同步");
-                syncUI.RegisterTask("ai_loadouts", "AI装备接收"); 
-            }
-
-            if (IsServer)
-            {
-                syncUI.RegisterTask("ai_seeds", "AI种子同步");
-                syncUI.RegisterTask("ai_loadouts", "AI装备同步");
-                syncUI.RegisterTask("destructible", "可破坏物扫描");
-            }
-
+            syncUI.RegisterTask("weather", "环境同步");
+            syncUI.RegisterTask("player_health", "玩家状态同步");
+            syncUI.RegisterTask("ai_loadouts", "AI装备接收"); 
             syncUI.RegisterTask("ai_names", "AI名称初始化");
         }
 
-        
-        if (!IsServer)
-        {
-            HealthM.Instance.Client_ReportSelfHealth_IfReadyOnce();
-            if (syncUI != null)
-                syncUI.CompleteTask("player_health");
-        }
+        HealthM.Instance.Client_ReportSelfHealth_IfReadyOnce();
+        if (syncUI != null)
+            syncUI.CompleteTask("player_health");
 
         SceneNet.Instance.TrySendSceneReadyOnce();
 
@@ -964,58 +792,14 @@ public partial class ModBehaviourF : MonoBehaviour
             initManager.EnqueueDelayedTask(
                 () =>
                 {
-                    if (!IsServer)
-                    {
-                        COOPManager.Weather.Client_RequestEnvSync();
-                        var ui = WaitingSynchronizationUI.Instance;
-                        if (ui != null)
-                            ui.CompleteTask("weather", "完成");
-                    }
+                    COOPManager.Weather.Client_RequestEnvSync();
+                    var ui = WaitingSynchronizationUI.Instance;
+                    if (ui != null)
+                        ui.CompleteTask("weather", "完成");
                 },
                 1.0f,
                 "Weather_EnvSync"
             );
-
-            
-            if (IsServer)
-            {
-                initManager.EnqueueDelayedTask(
-                    () =>
-                    {
-                        
-                        
-                       
-                        
-
-                        var ui = WaitingSynchronizationUI.Instance;
-                        if (ui != null)
-                            ui.UpdateTaskStatus("ai_seeds", false, "计算中...");
-                    },
-                    1.0f,
-                    "AI_Seeds"
-                );
-            }
-
-            
-            if (IsServer)
-            {
-                initManager.EnqueueDelayedTask(
-                    () =>
-                    {
-                        
-                        
-                        
-                        
-                        
-
-                        var ui = WaitingSynchronizationUI.Instance;
-                        if (ui != null)
-                            ui.UpdateTaskStatus("ai_loadouts", false, "发送中...");
-                    },
-                    1.0f,
-                    "AI_Loadouts"
-                );
-            }
 
             
             initManager.EnqueueDelayedTask(
@@ -1032,11 +816,7 @@ public partial class ModBehaviourF : MonoBehaviour
             );
         }
 
-        
-        if (!IsServer)
-            COOPManager.Weather.Client_RequestEnvSync();
-        if (IsServer)
-            COOPManager.AIHandle.Server_SendAiSeeds();
+        COOPManager.Weather.Client_RequestEnvSync();
         AIName.Client_ResetNameIconSeal_OnLevelInit();
     }
 
@@ -1047,8 +827,7 @@ public partial class ModBehaviourF : MonoBehaviour
         {
             Debug.Log($"[MOD] SceneManager_sceneLoaded: {arg0.name}, mode: {arg1}");
             SceneNet.Instance.TrySendSceneReadyOnce();
-            if (!IsServer)
-                COOPManager.Weather.Client_RequestEnvSync();
+            COOPManager.Weather.Client_RequestEnvSync();
             Debug.Log($"[MOD] SceneManager_sceneLoaded completed for: {arg0.name}");
         }
         catch (Exception ex)
@@ -1089,11 +868,8 @@ public partial class ModBehaviourF : MonoBehaviour
 
             HealthTool._cliHookedSelf = false;
 
-            if (!IsServer)
-            {
-                HealthTool._cliInitHpReported = false;
-                HealthM.Instance.Client_ReportSelfHealth_IfReadyOnce();
-            }
+            HealthTool._cliInitHpReported = false;
+            HealthM.Instance.Client_ReportSelfHealth_IfReadyOnce();
 
             if (!networkStarted || localPlayerStatus == null)
                 return;
@@ -1102,10 +878,7 @@ public partial class ModBehaviourF : MonoBehaviour
             localPlayerStatus.SceneId = sid;
             localPlayerStatus.IsInGame = ok;
 
-            if (!IsServer)
-                Send_ClientStatus.Instance.SendClientStatusUpdate();
-            else
-                SendLocalPlayerStatus.Instance.SendPlayerStatusUpdate();
+            Send_ClientStatus.Instance.SendClientStatusUpdate();
                 
             Debug.Log($"[MOD] OnSceneLoaded_IndexDestructibles completed for: {s.name}");
         }
