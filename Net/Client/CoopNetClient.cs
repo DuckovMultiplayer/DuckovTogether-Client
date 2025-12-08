@@ -494,6 +494,12 @@ public class CoopNetClient : MonoBehaviour, INetEventListener
         ServerPeer.Send(Writer, DeliveryMethod.ReliableOrdered);
     }
     
+    public void SendRaw(NetDataWriter writer)
+    {
+        if (!IsConnected || ServerPeer == null) return;
+        ServerPeer.Send(writer, DeliveryMethod.ReliableOrdered);
+    }
+    
     private GameObject GetLocalCharacter()
     {
         var mainControlType = Type.GetType("CharacterMainControl, Assembly-CSharp");

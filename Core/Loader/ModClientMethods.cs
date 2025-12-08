@@ -57,6 +57,13 @@ public partial class ModBehaviourF
     public void CreateVirtualPeerForRelay() { }
     public NetworkTransportMode TransportMode => NetworkTransportMode.Direct;
     public string _relayRoomId { get; set; } = "";
+    
+    public void SendRaw(LiteNetLib.Utils.NetDataWriter writer)
+    {
+        var client = Net.CoopNetClient.Instance;
+        if (client == null || !client.IsConnected) return;
+        client.SendRaw(writer);
+    }
 }
 
 public class LobbyOptions
