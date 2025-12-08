@@ -27,9 +27,6 @@ internal static class Patch_BlockClientAiShoot
         var mod = ModBehaviourF.Instance;
         if (mod == null || !mod.networkStarted) return true;
 
-        // 主机照常；客户端才需要拦
-        if (mod.IsServer) return true;
-
         var holder = __instance ? __instance.Holder : null;
 
         // 非本地主角 &&（AI 有 AICharacterController 或 NetAiTag 任一）=> 拦截
@@ -56,7 +53,7 @@ internal static class Patch_Melee_FlagLocalDeal
     private static void Prefix(ItemAgent_MeleeWeapon __instance, bool dealDamage)
     {
         var mod = ModBehaviourF.Instance;
-        var isClient = mod != null && mod.networkStarted && !mod.IsServer;
+        var isClient = mod != null && mod.networkStarted;
         var fromLocalMain = __instance && __instance.Holder == CharacterMainControl.Main;
         MeleeLocalGuard.LocalMeleeTryingToHurt = isClient && fromLocalMain && dealDamage;
     }
@@ -75,9 +72,6 @@ public static class Patch_ShootOneBullet_Client
     {
         var mod = ModBehaviourF.Instance;
         if (mod == null || !mod.networkStarted) return true;
-
-        var isClient = !mod.IsServer;
-        if (!isClient) return true;
 
         var holder = __instance.Holder;
         var isLocalMain = holder == CharacterMainControl.Main;
@@ -102,7 +96,7 @@ internal static class Patch_ProjectileInit_Broadcast
     private static void Postfix(Projectile __instance, ref ProjectileContext _context)
     {
         var mod = ModBehaviourF.Instance;
-        if (mod == null || !mod.IsServer || __instance == null) return;
+        return;
 
         if (COOPManager.WeaponHandle._serverSpawnedFromClient != null && COOPManager.WeaponHandle._serverSpawnedFromClient.Contains(__instance)) return;
 
