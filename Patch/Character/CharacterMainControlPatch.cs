@@ -25,7 +25,7 @@ internal static class Patch_CMC_OnChangeHold_AIRebroadcast
     private static void Postfix(CharacterMainControl __instance)
     {
         var mod = ModBehaviourF.Instance;
-        if (mod == null || !mod.networkStarted || !mod.IsServer) return; // 只在主机上发
+        if (mod == null || !mod.networkStarted) return; // 只在主机上发
         if (!__instance || __instance == CharacterMainControl.Main) return; // 排除本地玩家
 
         var tag = __instance.GetComponent<NetAiTag>();
@@ -42,7 +42,7 @@ internal static class Patch_CMC_SetCharacterModel_FaceReapply
     private static void Postfix(CharacterMainControl __instance)
     {
         var mod = ModBehaviourF.Instance;
-        if (mod == null || mod.IsServer) return;
+        if (mod == null) return;
         AIName.ReapplyFaceIfKnown(__instance);
     }
 }
@@ -53,7 +53,7 @@ internal static class Patch_CMC_SetCharacterModel_FaceReapply_Client
     private static void Postfix(CharacterMainControl __instance)
     {
         var mod = ModBehaviourF.Instance;
-        if (mod == null || mod.IsServer) return; // 只在客户端
+        if (mod == null) return; // 只在客户端
         AIName.ReapplyFaceIfKnown(__instance);
     }
 }
@@ -65,7 +65,7 @@ internal static class Patch_CMC_SetCharacterModel_Rebroadcast_Server
     private static void Postfix(CharacterMainControl __instance)
     {
         var mod = ModBehaviourF.Instance;
-        if (mod == null || !mod.IsServer) return;
+        if (mod == null) return;
 
         var aiId = -1;
         foreach (var kv in AITool.aiById)
@@ -116,7 +116,6 @@ internal static class Patch_Client_OnDead_ReportCorpseTree
         if (mod == null || !mod.networkStarted) return;
 
         // 仅"客户端 + 本机玩家"分支上报
-        if (mod.IsServer) return;
         if (__instance != CharacterMainControl.Main) return;
 
         // ⭐ 已经上报过（= 主机已经/可以生成过尸体战利品），直接跳过，不再创建/同步
@@ -156,7 +155,7 @@ internal static class Patch_Server_OnDead_Host_UsePlayerTree
     private static void Postfix(CharacterMainControl __instance)
     {
         var mod = ModBehaviourF.Instance;
-        if (mod == null || !mod.networkStarted || !mod.IsServer) return;
+        if (mod == null || !mod.networkStarted) return;
 
         var lm = LevelManager.Instance;
         if (lm == null || __instance != lm.MainCharacter) return; // 只处理主机自己的本机主角
@@ -172,7 +171,6 @@ internal static class Patch_Client_OnDead_MarkAll_ForBlock
     {
         var mod = ModBehaviourF.Instance;
         if (mod == null || !mod.networkStarted) return;
-        if (mod.IsServer) return; // 只在客户端打标记
         DeadLootSpawnContext.InOnDead = __instance;
     }
 
@@ -180,7 +178,6 @@ internal static class Patch_Client_OnDead_MarkAll_ForBlock
     {
         var mod = ModBehaviourF.Instance;
         if (mod == null || !mod.networkStarted) return;
-        if (mod.IsServer) return;
         DeadLootSpawnContext.InOnDead = null;
     }
 }
@@ -231,22 +228,19 @@ internal static class Patch_CMC_SetCharacterModel_RebindNetAiFollower
 
         try
         {
-            if (mod != null && mod.networkStarted && !mod.IsServer)
-            {
-                var id = -1;
-                // 从 aiById 反查当前 CMC 对应的 aiId
-                foreach (var kv in AITool.aiById)
-                    if (kv.Value == __instance)
-                    {
-                        id = kv.Key;
-                        break;
-                    }
-
-                if (id >= 0)
+            var id = -1;
+            // 从 aiById 反查当前 CMC 对应的 aiId
+            foreach (var kv in AITool.aiById)
+                if (kv.Value == __instance)
                 {
-                    var tag = __instance.GetComponent<NetAiTag>() ?? __instance.gameObject.AddComponent<NetAiTag>();
-                    if (tag.aiId != id) tag.aiId = id;
+                    id = kv.Key;
+                    break;
                 }
+
+            if (id >= 0)
+            {
+                var tag = __instance.GetComponent<NetAiTag>() ?? __instance.gameObject.AddComponent<NetAiTag>();
+                if (tag.aiId != id) tag.aiId = id;
             }
         }
         catch
@@ -257,7 +251,7 @@ internal static class Patch_CMC_SetCharacterModel_RebindNetAiFollower
         // 你已有 IsRealAI(.) 判定；保持一致
         try
         {
-            if (!mod.IsServer && AITool.IsRealAI(__instance))
+            if (AITool.IsRealAI(__instance))
                 // 确保有 RemoteReplicaTag（你已用它在 MagicBlend.Update 里早退）
                 if (!__instance.GetComponent<RemoteReplicaTag>())
                     __instance.gameObject.AddComponent<RemoteReplicaTag>();
@@ -284,7 +278,7 @@ internal static class Patch_CMC_SetCharacterModel_TagAndRebindOnClient
     private static void Postfix(CharacterMainControl __instance)
     {
         var mod = ModBehaviourF.Instance;
-        if (mod == null || !mod.networkStarted || mod.IsServer) return; // 只在客户端处理
+        if (mod == null || !mod.networkStarted) return;
 
         // 给客户端的 AI 复制体打上标记，并强制重绑 Animator
         // 【优化】使用 ComponentCache 避免重复 GetComponent
