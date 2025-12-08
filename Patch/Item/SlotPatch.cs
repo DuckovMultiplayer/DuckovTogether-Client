@@ -37,34 +37,20 @@ public static class Patch_Slot_Plug_PickupCleanup
         if (mod == null || !mod.networkStarted) return;
 
         // --- 客户端：发拾取请求 + 本地销毁地上Agent ---
-        if (!mod.IsServer)
+        // A) 直接命中：字典里就是这个 item 引用（非合堆最常见）
+        if (TryFindId(COOPManager.ItemHandle.clientDroppedItems, otherItem, out var cid))
         {
-            // A) 直接命中：字典里就是这个 item 引用（非合堆最常见）
-            if (TryFindId(COOPManager.ItemHandle.clientDroppedItems, otherItem, out var cid))
-            {
-                LocalDestroyAgent(otherItem);
-                SendPickupReq(mod, cid);
-                return;
-            }
-
-            // B) 合堆/引用变化：用近场 NetDropTag 反查 ID
-            if (TryFindNearestTaggedId(otherItem, out var nearId))
-            {
-                LocalDestroyAgentById(COOPManager.ItemHandle.clientDroppedItems, nearId);
-                SendPickupReq(mod, nearId);
-            }
-
+            LocalDestroyAgent(otherItem);
+            SendPickupReq(mod, cid);
             return;
         }
 
-        // --- 主机：本地销毁并广播 DESPAWN ---
-        if (TryFindId(COOPManager.ItemHandle.serverDroppedItems, otherItem, out var sid))
+        // B) 合堆/引用变化：用近场 NetDropTag 反查 ID
+        if (TryFindNearestTaggedId(otherItem, out var nearId))
         {
-            ServerDespawn(mod, sid);
-            return;
+            LocalDestroyAgentById(COOPManager.ItemHandle.clientDroppedItems, nearId);
+            SendPickupReq(mod, nearId);
         }
-
-        if (TryFindNearestTaggedId(otherItem, out var nearSid)) ServerDespawn(mod, nearSid);
     }
 
     // ========= 工具函数（与库存补丁同等逻辑，自包含） =========
@@ -72,16 +58,6 @@ public static class Patch_Slot_Plug_PickupCleanup
     {
         var msg = new Net.HybridNet.ItemPickupRequestMessage { DropId = id };
         Net.HybridNet.HybridNetCore.Send(msg, mod.connectedPeer);
-    }
-
-    private static void ServerDespawn(ModBehaviourF mod, uint id)
-    {
-        if (COOPManager.ItemHandle.serverDroppedItems.TryGetValue(id, out var it) && it != null)
-            LocalDestroyAgent(it);
-        COOPManager.ItemHandle.serverDroppedItems.Remove(id);
-
-        var msg = new Net.HybridNet.ItemDespawnMessage { DropId = id };
-        Net.HybridNet.HybridNetCore.Send(msg);
     }
 
     private static void LocalDestroyAgent(Item it)
@@ -163,7 +139,7 @@ internal static class Patch_Slot_Plug_BlockEquipFromLoot
     private static bool Prefix(Slot __instance, Item otherItem, ref Item unpluggedItem)
     {
         var m = ModBehaviourF.Instance;
-        if (m == null || !m.networkStarted || m.IsServer) return true;
+        if (m == null || !m.networkStarted) return true;
         if (COOPManager.LootNet._applyingLootState) return true;
 
         var inv = otherItem ? otherItem.InInventory : null;
@@ -187,7 +163,7 @@ internal static class Patch_SplitDialogue_DoSplit_NetOnly
     {
         var m = ModBehaviourF.Instance;
         // 未联网 / 主机执行 / 没有 Mod 行为时，走原版
-        if (m == null || !m.networkStarted || m.IsServer)
+        if (m == null || !m.networkStarted)
             return true;
 
         // 读取 SplitDialogue 的私有字段
@@ -247,7 +223,7 @@ internal static class Patch_Slot_Plug_ClientRedirect
     private static bool Prefix(Slot __instance, Item otherItem, ref bool __result)
     {
         var m = ModBehaviourF.Instance;
-        if (m == null || !m.networkStarted || m.IsServer || m.ClientLootSetupActive || COOPManager.LootNet._applyingLootState)
+        if (m == null || !m.networkStarted || m.ClientLootSetupActive || COOPManager.LootNet._applyingLootState)
             return true; // 主机/初始化/套快照时放行原逻辑
 
         var master = __instance?.Master;
@@ -274,7 +250,7 @@ internal static class Patch_Slot_Unplug_ClientRedirect
     private static bool Prefix(Slot __instance, ref Item __result)
     {
         var m = ModBehaviourF.Instance;
-        if (m == null || !m.networkStarted || m.IsServer) return true;
+        if (m == null || !m.networkStarted) return true;
         if (COOPManager.LootNet.ApplyingLootState) return true;
 
         // 关键：用 Master.InInventory 判断该槽位属于哪个容器
@@ -298,78 +274,18 @@ internal static class Patch_Slot_Unplug_ClientRedirect
     }
 }
 
-// Slot.Plug 主机在“容器里的武器”上装配件（目标 master 所在 Inventory 是容器）
 [HarmonyPatch(typeof(Slot), nameof(Slot.Plug))]
 internal static class Patch_ServerBroadcast_OnSlotPlug
 {
     private static void Postfix(Slot __instance, Item otherItem, Item unpluggedItem, bool __result)
     {
-        var m = ModBehaviourF.Instance;
-        if (m == null || !m.networkStarted || !m.IsServer) return;
-        if (!__result || COOPManager.LootNet._serverApplyingLoot) return;
-
-        // ✅ 修复：场景切换时 LevelManager 可能正在初始化，跳过同步避免崩溃
-        try
-        {
-            if (LevelManager.Instance == null || LevelManager.LootBoxInventories == null)
-            {
-                return; // 场景初始化中，跳过
-            }
-        }
-        catch
-        {
-            return; // 访问 LootBoxInventories 失败，说明场景正在切换
-        }
-
-        var master = __instance?.Master;
-        var inv = master ? master.InInventory : null;
-        if (!inv) return;
-        if (!LootboxDetectUtil.IsLootboxInventory(inv) || LootboxDetectUtil.IsPrivateInventory(inv)) return;
-
-        if (LootManager.Instance.Server_IsLootMuted(inv)) return; // ★ 静音期跳过
-
-        // ✅ 优化：延迟到帧结束时执行，减少场景加载时的性能压力
-        DeferedRunner.EndOfFrame(() =>
-        {
-            if (!inv || !LootboxDetectUtil.IsLootboxInventory(inv) || LootboxDetectUtil.IsPrivateInventory(inv)) return;
-            COOPManager.LootNet.Server_SendLootboxState(null, inv);
-        });
     }
 }
 
-// Slot.Unplug 主机在"容器里的武器"上拆配件
 [HarmonyPatch(typeof(Slot), nameof(Slot.Unplug))]
 internal static class Patch_ServerBroadcast_OnSlotUnplug
 {
     private static void Postfix(Slot __instance, Item __result)
     {
-        var m = ModBehaviourF.Instance;
-        if (m == null || !m.networkStarted || !m.IsServer) return;
-        if (COOPManager.LootNet._serverApplyingLoot) return;
-
-        // ✅ 修复：场景切换时 LevelManager 可能正在初始化，跳过同步避免崩溃
-        try
-        {
-            if (LevelManager.Instance == null || LevelManager.LootBoxInventories == null)
-            {
-                return; // 场景初始化中，跳过
-            }
-        }
-        catch
-        {
-            return; // 访问 LootBoxInventories 失败，说明场景正在切换
-        }
-
-        var master = __instance?.Master;
-        var inv = master ? master.InInventory : null;
-        if (!inv) return;
-        if (!LootboxDetectUtil.IsLootboxInventory(inv) || LootboxDetectUtil.IsPrivateInventory(inv)) return;
-
-        // ✅ 优化：延迟到帧结束时执行，减少场景加载时的性能压力
-        DeferedRunner.EndOfFrame(() =>
-        {
-            if (!inv || !LootboxDetectUtil.IsLootboxInventory(inv) || LootboxDetectUtil.IsPrivateInventory(inv)) return;
-            COOPManager.LootNet.Server_SendLootboxState(null, inv);
-        });
     }
 }
