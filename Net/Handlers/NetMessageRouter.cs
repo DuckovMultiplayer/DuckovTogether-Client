@@ -160,6 +160,42 @@ public class JsonMessageRouter : MonoBehaviour
                 case "ai_name_icon":
                     AINameIconMessage.Client_Handle(json);
                     break;
+                
+                case "playerJoin":
+                    HandlePlayerJoin(json);
+                    break;
+                
+                case "playerDisconnect":
+                    HandlePlayerDisconnect(json);
+                    break;
+                
+                case "playerDeath":
+                    HandlePlayerDeath(json);
+                    break;
+                
+                case "playerRespawn":
+                    HandlePlayerRespawn(json);
+                    break;
+                
+                case "playerHealth":
+                    HandlePlayerHealth(json);
+                    break;
+                
+                case "playerList":
+                    HandlePlayerList(json);
+                    break;
+                
+                case "player_transform_snapshot":
+                    HandlePlayerTransformSnapshot(json);
+                    break;
+                
+                case "player_anim_snapshot":
+                    HandlePlayerAnimSnapshot(json);
+                    break;
+                
+                case "player_equipment_snapshot":
+                    HandlePlayerEquipmentSnapshot(json);
+                    break;
 
                 default:
                     Debug.LogWarning($"[JsonRouter] 未知的消息类型: {baseMsg.type}");
@@ -312,6 +348,382 @@ public class JsonMessageRouter : MonoBehaviour
         catch (System.Exception ex)
         {
             Debug.LogError($"[JsonRouter] 处理测试消息失败: {ex.Message}");
+        }
+    }
+    
+    [System.Serializable]
+    private class PlayerJoinData
+    {
+        public string type;
+        public int peerId;
+        public string playerName;
+        public Vec3 position;
+        public Vec3 rotation;
+        public string customFaceJson;
+        public string timestamp;
+    }
+    
+    [System.Serializable]
+    private class Vec3 { public float x, y, z; }
+    
+    private static void HandlePlayerJoin(string json)
+    {
+        try
+        {
+            var data = JsonUtility.FromJson<PlayerJoinData>(json);
+            if (data == null) return;
+            
+            Debug.Log($"[PlayerSync] 玩家加入: {data.playerName} (ID: {data.peerId})");
+            
+            var pos = new Vector3(data.position.x, data.position.y, data.position.z);
+            var rot = Quaternion.Euler(data.rotation.x, data.rotation.y, data.rotation.z);
+            
+            CreateRemoteCharacter.CreateRemoteCharacterForClient(
+                data.peerId.ToString(), pos, rot, data.customFaceJson ?? ""
+            ).Forget();
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[PlayerSync] 处理玩家加入失败: {ex.Message}");
+        }
+    }
+    
+    [System.Serializable]
+    private class PlayerDisconnectData
+    {
+        public string type;
+        public int peerId;
+        public string timestamp;
+    }
+    
+    private static void HandlePlayerDisconnect(string json)
+    {
+        try
+        {
+            var data = JsonUtility.FromJson<PlayerDisconnectData>(json);
+            if (data == null) return;
+            
+            Debug.Log($"[PlayerSync] 玩家断开: ID {data.peerId}");
+            
+            var service = NetService.Instance;
+            if (service?.clientRemoteCharacters != null)
+            {
+                var playerId = data.peerId.ToString();
+                if (service.clientRemoteCharacters.TryGetValue(playerId, out var go) && go != null)
+                {
+                    UnityEngine.Object.Destroy(go);
+                }
+                service.clientRemoteCharacters.Remove(playerId);
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[PlayerSync] 处理玩家断开失败: {ex.Message}");
+        }
+    }
+    
+    [System.Serializable]
+    private class PlayerDeathData
+    {
+        public string type;
+        public int peerId;
+        public int killerId;
+        public string cause;
+        public string timestamp;
+    }
+    
+    private static void HandlePlayerDeath(string json)
+    {
+        try
+        {
+            var data = JsonUtility.FromJson<PlayerDeathData>(json);
+            if (data == null) return;
+            
+            Debug.Log($"[PlayerSync] 玩家死亡: ID {data.peerId}, 击杀者: {data.killerId}");
+            
+            var service = NetService.Instance;
+            var playerId = data.peerId.ToString();
+            if (service?.clientRemoteCharacters?.TryGetValue(playerId, out var go) == true && go != null)
+            {
+                var health = go.GetComponentInChildren<Health>(true);
+                if (health != null)
+                {
+                    health.SetHealthInstant(0);
+                }
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[PlayerSync] 处理玩家死亡失败: {ex.Message}");
+        }
+    }
+    
+    [System.Serializable]
+    private class PlayerRespawnData
+    {
+        public string type;
+        public int peerId;
+        public Vec3 position;
+        public string timestamp;
+    }
+    
+    private static void HandlePlayerRespawn(string json)
+    {
+        try
+        {
+            var data = JsonUtility.FromJson<PlayerRespawnData>(json);
+            if (data == null) return;
+            
+            Debug.Log($"[PlayerSync] 玩家重生: ID {data.peerId}");
+            
+            var service = NetService.Instance;
+            var playerId = data.peerId.ToString();
+            if (service?.clientRemoteCharacters?.TryGetValue(playerId, out var go) == true && go != null)
+            {
+                go.transform.position = new Vector3(data.position.x, data.position.y, data.position.z);
+                var health = go.GetComponentInChildren<Health>(true);
+                if (health != null)
+                {
+                    health.SetHealthInstant(health.MaxHealth);
+                }
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[PlayerSync] 处理玩家重生失败: {ex.Message}");
+        }
+    }
+    
+    [System.Serializable]
+    private class PlayerHealthData
+    {
+        public string type;
+        public int peerId;
+        public float currentHealth;
+        public float maxHealth;
+    }
+    
+    private static void HandlePlayerHealth(string json)
+    {
+        try
+        {
+            var data = JsonUtility.FromJson<PlayerHealthData>(json);
+            if (data == null) return;
+            
+            var service = NetService.Instance;
+            var playerId = data.peerId.ToString();
+            if (service?.clientRemoteCharacters?.TryGetValue(playerId, out var go) == true && go != null)
+            {
+                var health = go.GetComponentInChildren<Health>(true);
+                if (health != null)
+                {
+                    health.SetHealthInstant(data.currentHealth);
+                }
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[PlayerSync] 处理玩家生命值失败: {ex.Message}");
+        }
+    }
+    
+    [System.Serializable]
+    private class PlayerListData
+    {
+        public string type;
+        public PlayerListEntry[] players;
+    }
+    
+    [System.Serializable]
+    private class PlayerListEntry
+    {
+        public int peerId;
+        public string endPoint;
+        public string playerName;
+        public bool isInGame;
+        public string sceneId;
+        public int latency;
+    }
+    
+    private static void HandlePlayerList(string json)
+    {
+        try
+        {
+            var data = JsonUtility.FromJson<PlayerListData>(json);
+            if (data?.players == null) return;
+            
+            var service = NetService.Instance;
+            if (service == null) return;
+            
+            foreach (var p in data.players)
+            {
+                if (service.IsSelfId(p.peerId.ToString())) continue;
+                
+                if (!service.clientPlayerStatuses.TryGetValue(p.peerId.ToString(), out var status))
+                {
+                    status = new PlayerStatus();
+                    service.clientPlayerStatuses[p.peerId.ToString()] = status;
+                }
+                
+                status.EndPoint = p.endPoint;
+                status.PlayerName = p.playerName;
+                status.IsInGame = p.isInGame;
+                status.SceneId = p.sceneId;
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[PlayerSync] 处理玩家列表失败: {ex.Message}");
+        }
+    }
+    
+    [System.Serializable]
+    private class PlayerTransformSnapshotData
+    {
+        public string type;
+        public PlayerTransformEntry[] transforms;
+    }
+    
+    [System.Serializable]
+    private class PlayerTransformEntry
+    {
+        public int peerId;
+        public Vec3 position;
+        public Vec3 rotation;
+        public Vec3 velocity;
+    }
+    
+    private static void HandlePlayerTransformSnapshot(string json)
+    {
+        try
+        {
+            var data = JsonUtility.FromJson<PlayerTransformSnapshotData>(json);
+            if (data?.transforms == null) return;
+            
+            var service = NetService.Instance;
+            if (service == null) return;
+            
+            foreach (var t in data.transforms)
+            {
+                if (service.IsSelfId(t.peerId.ToString())) continue;
+                
+                var playerId = t.peerId.ToString();
+                if (service.clientRemoteCharacters?.TryGetValue(playerId, out var go) == true && go != null)
+                {
+                    var interp = go.GetComponent<NetInterpUtil>();
+                    if (interp != null)
+                    {
+                        var pos = new Vector3(t.position.x, t.position.y, t.position.z);
+                        var rot = Quaternion.Euler(t.rotation.x, t.rotation.y, t.rotation.z);
+                        interp.Push(pos, rot);
+                    }
+                }
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[PlayerSync] 处理玩家位置快照失败: {ex.Message}");
+        }
+    }
+    
+    [System.Serializable]
+    private class PlayerAnimSnapshotData
+    {
+        public string type;
+        public PlayerAnimEntry[] anims;
+    }
+    
+    [System.Serializable]
+    private class PlayerAnimEntry
+    {
+        public int peerId;
+        public float speed;
+        public float dirX;
+        public float dirY;
+        public int hand;
+        public bool gunReady;
+        public bool dashing;
+        public bool reloading;
+    }
+    
+    private static void HandlePlayerAnimSnapshot(string json)
+    {
+        try
+        {
+            var data = JsonUtility.FromJson<PlayerAnimSnapshotData>(json);
+            if (data?.anims == null) return;
+            
+            var service = NetService.Instance;
+            if (service == null) return;
+            
+            foreach (var a in data.anims)
+            {
+                if (service.IsSelfId(a.peerId.ToString())) continue;
+                
+                var playerId = a.peerId.ToString();
+                if (service.clientRemoteCharacters?.TryGetValue(playerId, out var go) == true && go != null)
+                {
+                    var animInterp = go.GetComponent<AnimInterpUtil>();
+                    if (animInterp != null)
+                    {
+                        animInterp.Push(a.speed, a.dirX, a.dirY, a.hand, a.gunReady, a.dashing, a.reloading);
+                    }
+                }
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[PlayerSync] 处理玩家动画快照失败: {ex.Message}");
+        }
+    }
+    
+    [System.Serializable]
+    private class PlayerEquipmentSnapshotData
+    {
+        public string type;
+        public PlayerEquipmentEntry[] equipment;
+    }
+    
+    [System.Serializable]
+    private class PlayerEquipmentEntry
+    {
+        public int peerId;
+        public int weaponId;
+        public int armorId;
+        public int helmetId;
+        public int[] hotbar;
+    }
+    
+    private static void HandlePlayerEquipmentSnapshot(string json)
+    {
+        try
+        {
+            var data = JsonUtility.FromJson<PlayerEquipmentSnapshotData>(json);
+            if (data?.equipment == null) return;
+            
+            var service = NetService.Instance;
+            if (service == null) return;
+            
+            foreach (var e in data.equipment)
+            {
+                if (service.IsSelfId(e.peerId.ToString())) continue;
+                
+                var playerId = e.peerId.ToString();
+                if (service.clientRemoteCharacters?.TryGetValue(playerId, out var go) == true && go != null)
+                {
+                    var model = go.GetComponent<CharacterMainControl>()?.characterModel;
+                    if (model != null)
+                    {
+                        COOPManager.TryApplyWeaponToRemote(model, e.weaponId);
+                        COOPManager.TryApplyArmorToRemote(model, e.armorId);
+                        COOPManager.TryApplyHelmetToRemote(model, e.helmetId);
+                    }
+                }
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[PlayerSync] 处理玩家装备快照失败: {ex.Message}");
         }
     }
 }
