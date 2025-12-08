@@ -24,7 +24,7 @@ public class ClientPlayerApply
 
     private readonly Dictionary<string, string> _lastWeaponAppliedByPlayer = new();
     private readonly Dictionary<string, float> _lastWeaponAppliedTimeByPlayer = new();
-    private NetService Service => NetService.Instance;
+    private ModBehaviourF Service => ModBehaviourF.Instance;
 
     private bool IsServer => Service != null && Service.IsServer;
     private NetManager netManager => Service?.netManager;
@@ -39,7 +39,7 @@ public class ClientPlayerApply
 
     public async UniTask ApplyEquipmentUpdate_Client(string playerId, int slotHash, string itemId)
     {
-        if (NetService.Instance.IsSelfId(playerId)) return;
+        if (ModBehaviourF.Instance.IsSelfId(playerId)) return;
         if (!clientRemoteCharacters.TryGetValue(playerId, out var remoteObj) || remoteObj == null) return;
 
         var characterModel = remoteObj.GetComponent<CharacterMainControl>().characterModel;
@@ -116,7 +116,7 @@ public class ClientPlayerApply
     
     public async UniTask ApplyWeaponUpdate_Client(string playerId, int slotHash, string itemId)
     {
-        if (NetService.Instance.IsSelfId(playerId)) return;
+        if (ModBehaviourF.Instance.IsSelfId(playerId)) return;
 
         if (!clientRemoteCharacters.TryGetValue(playerId, out var remoteObj) || remoteObj == null) return;
         var cm = remoteObj.GetComponent<CharacterMainControl>();

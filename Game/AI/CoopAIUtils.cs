@@ -45,7 +45,7 @@ public static class AITool
     private static readonly Collider[] _corpseScanBuf = new Collider[64];
 
     public static readonly HashSet<int> _cliAiDeathFxOnce = new();
-    private static NetService Service => NetService.Instance;
+    private static ModBehaviourF Service => ModBehaviourF.Instance;
     private static bool IsServer => Service != null && Service.IsServer;
     private static NetManager netManager => Service?.netManager;
     private static NetDataWriter writer => Service?.writer;

@@ -28,7 +28,7 @@ public class Spectator : MonoBehaviour
     public int _spectateIdx = -1;
     public float _spectateNextSwitchTime;
     public DamageInfo _lastDeathInfo;
-    private NetService Service => NetService.Instance;
+    private ModBehaviourF Service => ModBehaviourF.Instance;
 
     private bool IsServer => Service != null && Service.IsServer;
     private NetManager netManager => Service?.netManager;
@@ -106,7 +106,7 @@ public class Spectator : MonoBehaviour
 
                 
                 string peerScene = null;
-                if (NetService.Instance.clientPlayerStatuses.TryGetValue(kv.Key, out var st))
+                if (ModBehaviourF.Instance.clientPlayerStatuses.TryGetValue(kv.Key, out var st))
                     peerScene = st?.SceneId;
 
                 
@@ -185,7 +185,7 @@ public class Spectator : MonoBehaviour
                 var v = kv.Value.GetComponent<CharacterMainControl>();
                 if (v == cmc)
                 {
-                    if (NetService.Instance.clientPlayerStatuses.TryGetValue(kv.Key, out var st) && st != null)
+                    if (ModBehaviourF.Instance.clientPlayerStatuses.TryGetValue(kv.Key, out var st) && st != null)
                         return st.SceneId == mySceneId;
                     return false;
                 }

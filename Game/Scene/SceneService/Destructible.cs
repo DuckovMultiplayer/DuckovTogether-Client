@@ -34,7 +34,7 @@ public class Destructible
 
     
     private readonly Dictionary<uint, HealthSimpleBase> _serverDestructibles = new();
-    private NetService Service => NetService.Instance;
+    private ModBehaviourF Service => ModBehaviourF.Instance;
 
     
     private static FieldInfo _fieldHalfObsticleIsDead;
@@ -291,13 +291,13 @@ public class Destructible
             initManager.EnqueueDelayedTask(() =>
             {
                 
-                NetService.Instance.StartCoroutine(ScanAndMarkInitiallyDeadDestructiblesAsync(20));
+                ModBehaviourF.Instance.StartCoroutine(ScanAndMarkInitiallyDeadDestructiblesAsync(20));
             }, 2.0f, "Destructible_Scan"); 
         }
         else
         {
             
-            NetService.Instance.StartCoroutine(ScanAndMarkInitiallyDeadDestructiblesAsync(20));
+            ModBehaviourF.Instance.StartCoroutine(ScanAndMarkInitiallyDeadDestructiblesAsync(20));
         }
     }
 

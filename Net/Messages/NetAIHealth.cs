@@ -38,7 +38,7 @@ public static class AIHealthMessage
     
     public static void Client_ReportHealth(int aiId, float max, float cur)
     {
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         if (service == null || !service.networkStarted || service.IsServer || service.connectedPeer == null || aiId == 0) 
             return;
         
@@ -81,7 +81,7 @@ public static class AIHealthMessage
     
     public static void Host_HandleHealthReport(NetPeer fromPeer, string json)
     {
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         if (service == null || !service.networkStarted || !service.IsServer) return;
         
         var data = JsonMessage.HandleReceivedJson<HealthReportData>(json);

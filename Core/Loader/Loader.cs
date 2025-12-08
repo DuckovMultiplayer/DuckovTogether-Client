@@ -43,8 +43,8 @@ public class ModBehaviour : Duckov.Modding.ModBehaviour
         DontDestroyOnLoad(go);
         Debug.Log("[ModBehaviour] COOP_MOD_1 GameObject created");
 
-        go.AddComponent<NetService>();
-        Debug.Log("[ModBehaviour] NetService added");
+        go.AddComponent<ModBehaviourF>();
+        Debug.Log("[ModBehaviour] ModBehaviourF.Instanced");
         COOPManager.InitManager();
         Debug.Log("[ModBehaviour] COOPManager.InitManager() completed");
         go.AddComponent<ModBehaviourF>();

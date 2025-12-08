@@ -22,7 +22,7 @@ public static class CustomFace
 {
     
     public static readonly Dictionary<string, string> _cliPendingFace = new();
-    private static NetService Service => NetService.Instance;
+    private static ModBehaviourF Service => ModBehaviourF.Instance;
 
     
     public static void Client_ApplyFaceIfAvailable(string playerId, GameObject instance, string faceOverride = null)
@@ -35,7 +35,7 @@ public static class CustomFace
             {
                 if (_cliPendingFace.TryGetValue(playerId, out var pf) && !string.IsNullOrEmpty(pf))
                     face = pf;
-                else if (NetService.Instance.clientPlayerStatuses.TryGetValue(playerId, out var st) && !string.IsNullOrEmpty(st.CustomFaceJson))
+                else if (ModBehaviourF.Instance.clientPlayerStatuses.TryGetValue(playerId, out var st) && !string.IsNullOrEmpty(st.CustomFaceJson))
                     face = st.CustomFaceJson;
             }
 

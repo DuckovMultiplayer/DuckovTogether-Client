@@ -6,7 +6,7 @@ public static class ClientStatusMessage
 {
     public static void Client_SendStatusUpdate()
     {
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         if (service == null || service.connectedPeer == null || service.IsServer)
         {
             Debug.LogWarning("[ClientStatus] 无法发送状态：Service或Peer为空，或为服务器端");

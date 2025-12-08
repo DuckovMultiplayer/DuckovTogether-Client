@@ -33,15 +33,15 @@ public static class CoopTool
     
     public static readonly Dictionary<string, (float max, float cur)> _cliPendingRemoteHp = new();
 
-    private static NetService Service
+    private static ModBehaviourF Service
     {
         get
         {
-            var svc = NetService.Instance;
+            var svc = ModBehaviourF.Instance;
             if (svc == null)
             {
-                svc = Object.FindObjectOfType<NetService>();
-                if (svc != null) NetService.Instance = svc;
+                svc = Object.FindObjectOfType<ModBehaviourF>();
+                if (svc != null) ModBehaviourF.Instance = svc;
             }
 
             return svc;
@@ -107,7 +107,7 @@ public static class CoopTool
     public static void TryPlayShootAnim(string shooterId)
     {
         
-        if (NetService.Instance.IsSelfId(shooterId)) return;
+        if (ModBehaviourF.Instance.IsSelfId(shooterId)) return;
 
         var remoteCharacters = ClientRemoteCharacters;
         if (remoteCharacters == null) return;
@@ -314,7 +314,7 @@ public static class CoopTool
         LocalPlayerManager.Instance.ComputeIsInGame(out hostSceneId); 
 
         
-        var hostPid = NetService.Instance.GetPlayerId(null);
+        var hostPid = ModBehaviourF.Instance.GetPlayerId(null);
         if (!string.IsNullOrEmpty(hostPid)) list.Add(hostPid);
 
         
@@ -335,14 +335,14 @@ public static class CoopTool
             {
                 if (peerScene == hostSceneId)
                 {
-                    var pid = NetService.Instance.GetPlayerId(peer);
+                    var pid = ModBehaviourF.Instance.GetPlayerId(peer);
                     if (!string.IsNullOrEmpty(pid)) list.Add(pid);
                 }
             }
             else
             {
                 
-                var pid = NetService.Instance.GetPlayerId(peer);
+                var pid = ModBehaviourF.Instance.GetPlayerId(peer);
                 if (!string.IsNullOrEmpty(pid)) list.Add(pid);
             }
         }

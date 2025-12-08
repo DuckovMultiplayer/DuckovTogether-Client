@@ -41,7 +41,7 @@ public class LootNet
     
     public uint _nextLootToken = 1;
     public bool _serverApplyingLoot; 
-    private NetService Service => NetService.Instance;
+    private ModBehaviourF Service => ModBehaviourF.Instance;
 
     private bool IsServer => Service != null && Service.IsServer;
     private NetManager netManager => Service?.netManager;

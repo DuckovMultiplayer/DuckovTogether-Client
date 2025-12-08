@@ -18,7 +18,7 @@ namespace EscapeFromDuckovCoopMod;
 
 public class HurtM
 {
-    private static NetService Service => NetService.Instance;
+    private static ModBehaviourF Service => ModBehaviourF.Instance;
 
     private static bool IsServer => Service != null && Service.IsServer;
     private static NetManager netManager => Service?.netManager;

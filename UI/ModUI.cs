@@ -24,6 +24,7 @@ public partial class ModUI : MonoBehaviour
 {
     public static ModUI Instance;
 
+    public NetworkTransportMode TransportMode => Service?.TransportMode ?? NetworkTransportMode.Direct;
     public bool showUI = true;
     public bool showPlayerStatusWindow;
     public bool showVoiceSettingsWindow;
@@ -49,7 +50,7 @@ public partial class ModUI : MonoBehaviour
     private string _steamJoinPassword = string.Empty;
     private bool _steamShowLobbyBrowser;
 
-    private NetService Service => NetService.Instance;
+    private ModBehaviourF Service => ModBehaviourF.Instance;
     private bool IsServer => Service != null && Service.IsServer;
     private NetManager netManager => Service?.netManager;
     private NetDataWriter writer => Service?.writer;
@@ -97,7 +98,7 @@ public partial class ModUI : MonoBehaviour
     private Dictionary<string, GameObject> clientRemoteCharacters => Service?.clientRemoteCharacters;
     private Dictionary<string, PlayerStatus> clientPlayerStatuses => Service?.clientPlayerStatuses;
     private SteamLobbyManager LobbyManager => SteamLobbyManager.Instance;
-    private NetworkTransportMode TransportMode => Service?.TransportMode ?? NetworkTransportMode.Direct;
+    private bool IsSteamMode => false;
 
     void Update()
     {
@@ -186,7 +187,7 @@ public partial class ModUI : MonoBehaviour
             var options = svc.LobbyOptions;
             _steamLobbyName = options.LobbyName;
             _steamLobbyPassword = options.Password;
-            _steamLobbyFriendsOnly = options.Visibility == SteamLobbyVisibility.FriendsOnly;
+            _steamLobbyFriendsOnly = options.Visibility == 1;
             _steamLobbyMaxPlayers = Mathf.Clamp(options.MaxPlayers, 2, 16);
         }
 
@@ -228,7 +229,7 @@ public partial class ModUI : MonoBehaviour
             MaxPlayers = maxPlayers
         };
 
-        Service.ConfigureLobbyOptions(options);
+        Service.ConfigureLobbyOptions(maxPlayers);
     }
 
     private void DrawTransportModeSelector()
@@ -243,13 +244,13 @@ public partial class ModUI : MonoBehaviour
             CoopLocalization.Get("ui.transport.mode.steam")
         };
 
-        var currentIndex = TransportMode == NetworkTransportMode.Direct ? 0 : 1;
+        var currentIndex = 0;
         var selectedIndex = GUILayout.Toolbar(currentIndex, modeLabels);
 
         if (selectedIndex != currentIndex)
         {
             var newMode = selectedIndex == 0 ? NetworkTransportMode.Direct : NetworkTransportMode.SteamP2P;
-            Service.SetTransportMode(newMode);
+            Service.SetTransportMode((int)newMode);
 
             if (newMode == NetworkTransportMode.SteamP2P && LobbyManager != null)
             {
@@ -278,10 +279,10 @@ public partial class ModUI : MonoBehaviour
                     {
                         if (netManager == null || !netManager.IsRunning || IsServer || !networkStarted)
                         {
-                            NetService.Instance.StartNetwork(false);
+                            ModBehaviourF.Instance.StartNetwork(false);
                         }
 
-                        NetService.Instance.ConnectToHost(parts[0], parsedPort);
+                        ModBehaviourF.Instance.ConnectToHost(parts[0], parsedPort);
                     }
                 }
 
@@ -309,10 +310,10 @@ public partial class ModUI : MonoBehaviour
             {
                 if (netManager == null || !netManager.IsRunning || IsServer || !networkStarted)
                 {
-                    NetService.Instance.StartNetwork(false);
+                    ModBehaviourF.Instance.StartNetwork(false);
                 }
 
-                NetService.Instance.ConnectToHost(manualIP, parsedPort);
+                ModBehaviourF.Instance.ConnectToHost(manualIP, parsedPort);
             }
             else
             {
@@ -381,7 +382,7 @@ public partial class ModUI : MonoBehaviour
             GUILayout.Space(10);
             if (GUILayout.Button(CoopLocalization.Get("ui.steam.leaveLobby"), GUILayout.Height(32)))
             {
-                NetService.Instance?.StopNetwork();
+                ModBehaviourF.Instance?.StopNetwork();
             }
         }
     }
@@ -461,7 +462,7 @@ public partial class ModUI : MonoBehaviour
             {
                 if (GUILayout.Button(CoopLocalization.Get("ui.steam.leaveLobby"), GUILayout.Height(32)))
                 {
-                    NetService.Instance?.StopNetwork();
+                    ModBehaviourF.Instance?.StopNetwork();
                 }
             }
         }
@@ -473,12 +474,12 @@ public partial class ModUI : MonoBehaviour
                 if (GUILayout.Button(CoopLocalization.Get("ui.steam.createHost"), GUILayout.Height(40)))
                 {
                     UpdateLobbyOptionsFromUI();
-                    NetService.Instance?.StartNetwork(true);
+                    ModBehaviourF.Instance?.StartNetwork(true);
                 }
             }
             else if (GUILayout.Button(CoopLocalization.Get("ui.steam.leaveLobby"), GUILayout.Height(32)))
             {
-                NetService.Instance?.StopNetwork();
+                ModBehaviourF.Instance?.StopNetwork();
             }
         }
     }
@@ -580,7 +581,7 @@ public partial class ModUI : MonoBehaviour
             if (GUILayout.Button(CoopLocalization.Get("ui.mode.switchTo", IsServer ? CoopLocalization.Get("ui.mode.client") : CoopLocalization.Get("ui.mode.server"))))
             {
                 var target = !IsServer;
-                NetService.Instance.StartNetwork(target);
+                ModBehaviourF.Instance.StartNetwork(target);
             }
 
             GUILayout.Space(10);

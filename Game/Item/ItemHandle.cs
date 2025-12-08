@@ -27,7 +27,7 @@ public class ItemHandle
     public readonly HashSet<uint> pendingLocalDropTokens = new();
     public readonly Dictionary<uint, Item> pendingTokenItems = new(); 
     public readonly Dictionary<uint, Item> serverDroppedItems = new(); 
-    private NetService Service => NetService.Instance;
+    private ModBehaviourF Service => ModBehaviourF.Instance;
 
     private bool IsServer => Service != null && Service.IsServer;
     private NetManager netManager => Service?.netManager;

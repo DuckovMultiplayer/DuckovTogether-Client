@@ -55,7 +55,7 @@ public static class HealthTool
     public static readonly FieldInfo FI_hasCharacter =
         typeof(Health).GetField("hasCharacter", BindingFlags.NonPublic | BindingFlags.Instance);
 
-    private static NetService Service => NetService.Instance;
+    private static ModBehaviourF Service => ModBehaviourF.Instance;
     private static Dictionary<NetPeer, GameObject> remoteCharacters => Service?.remoteCharacters;
 
 

@@ -36,7 +36,6 @@ public class RemoteAIManager : MonoBehaviour
         var client = DuckovTogetherClient.Instance;
         if (client == null || !client.IsConnected) return;
         
-        SyncRemoteAI(client.RemoteAI);
         CleanupDeadAI();
     }
     
@@ -47,15 +46,8 @@ public class RemoteAIManager : MonoBehaviour
         Debug.Log("[RemoteAIManager] Initialized");
     }
     
-    private void RegisterEvents()
-    {
-        ClientEvents.OnAIHealthChanged += OnAIHealthChanged;
-    }
-    
-    private void UnregisterEvents()
-    {
-        ClientEvents.OnAIHealthChanged -= OnAIHealthChanged;
-    }
+    private void RegisterEvents() { }
+    private void UnregisterEvents() { }
     
     private void SyncRemoteAI(Dictionary<int, RemoteAIState> remoteAI)
     {

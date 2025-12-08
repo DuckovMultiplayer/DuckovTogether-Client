@@ -7,7 +7,7 @@ public class VoiceManager : MonoBehaviour
 {
     public static VoiceManager Instance;
     
-    private NetService Service => NetService.Instance;
+    private ModBehaviourF Service => ModBehaviourF.Instance;
     private string microphoneDevice;
     private AudioClip microphoneClip;
     private bool isRecording;

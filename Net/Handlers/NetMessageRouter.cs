@@ -21,7 +21,7 @@ namespace EscapeFromDuckovCoopMod;
 
 
 
-public class JsonMessageRouter : MonoBehaviour
+public class JsonMessageRouter : ModBehaviourF
 {
     public static JsonMessageRouter Instance { get; private set; }
     
@@ -234,7 +234,7 @@ public class JsonMessageRouter : MonoBehaviour
     
     private static void HandleSetIdMessage(string json)
     {
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         if (service == null)
         {
             Debug.LogWarning("[JsonRouter] NetService未初始化");
@@ -292,7 +292,7 @@ public class JsonMessageRouter : MonoBehaviour
     
     private static void CleanupSelfDuplicate(string oldId, string newId)
     {
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         if (service == null || service.clientRemoteCharacters == null)
             return;
 
@@ -333,7 +333,7 @@ public class JsonMessageRouter : MonoBehaviour
     
     private static void HandleClientStatusMessage(string json, NetPeer fromPeer)
     {
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         if (service == null || !service.IsServer)
         {
             Debug.LogWarning("[JsonRouter] 只有主机可以接收客户端状态消息");
@@ -426,7 +426,7 @@ public class JsonMessageRouter : MonoBehaviour
             
             Debug.Log($"[PlayerSync] 玩家断开: ID {data.peerId}");
             
-            var service = NetService.Instance;
+            var service = ModBehaviourF.Instance;
             if (service?.clientRemoteCharacters != null)
             {
                 var playerId = data.peerId.ToString();
@@ -462,15 +462,10 @@ public class JsonMessageRouter : MonoBehaviour
             
             Debug.Log($"[PlayerSync] 玩家死亡: ID {data.peerId}, 击杀者: {data.killerId}");
             
-            var service = NetService.Instance;
+            var service = ModBehaviourF.Instance;
             var playerId = data.peerId.ToString();
             if (service?.clientRemoteCharacters?.TryGetValue(playerId, out var go) == true && go != null)
             {
-                var health = go.GetComponentInChildren<Health>(true);
-                if (health != null)
-                {
-                    health.SetHealthInstant(0);
-                }
             }
         }
         catch (System.Exception ex)
@@ -497,16 +492,11 @@ public class JsonMessageRouter : MonoBehaviour
             
             Debug.Log($"[PlayerSync] 玩家重生: ID {data.peerId}");
             
-            var service = NetService.Instance;
+            var service = ModBehaviourF.Instance;
             var playerId = data.peerId.ToString();
             if (service?.clientRemoteCharacters?.TryGetValue(playerId, out var go) == true && go != null)
             {
                 go.transform.position = new Vector3(data.position.x, data.position.y, data.position.z);
-                var health = go.GetComponentInChildren<Health>(true);
-                if (health != null)
-                {
-                    health.SetHealthInstant(health.MaxHealth);
-                }
             }
         }
         catch (System.Exception ex)
@@ -531,15 +521,10 @@ public class JsonMessageRouter : MonoBehaviour
             var data = JsonUtility.FromJson<PlayerHealthData>(json);
             if (data == null) return;
             
-            var service = NetService.Instance;
+            var service = ModBehaviourF.Instance;
             var playerId = data.peerId.ToString();
             if (service?.clientRemoteCharacters?.TryGetValue(playerId, out var go) == true && go != null)
             {
-                var health = go.GetComponentInChildren<Health>(true);
-                if (health != null)
-                {
-                    health.SetHealthInstant(data.currentHealth);
-                }
             }
         }
         catch (System.Exception ex)
@@ -573,7 +558,7 @@ public class JsonMessageRouter : MonoBehaviour
             var data = JsonUtility.FromJson<PlayerListData>(json);
             if (data?.players == null) return;
             
-            var service = NetService.Instance;
+            var service = ModBehaviourF.Instance;
             if (service == null) return;
             
             foreach (var p in data.players)
@@ -621,7 +606,7 @@ public class JsonMessageRouter : MonoBehaviour
             var data = JsonUtility.FromJson<PlayerTransformSnapshotData>(json);
             if (data?.transforms == null) return;
             
-            var service = NetService.Instance;
+            var service = ModBehaviourF.Instance;
             if (service == null) return;
             
             foreach (var t in data.transforms)
@@ -631,7 +616,7 @@ public class JsonMessageRouter : MonoBehaviour
                 var playerId = t.peerId.ToString();
                 if (service.clientRemoteCharacters?.TryGetValue(playerId, out var go) == true && go != null)
                 {
-                    var interp = go.GetComponent<NetInterpUtil>();
+                    var interp = NetInterpUtil.Attach(go);
                     if (interp != null)
                     {
                         var pos = new Vector3(t.position.x, t.position.y, t.position.z);
@@ -674,7 +659,7 @@ public class JsonMessageRouter : MonoBehaviour
             var data = JsonUtility.FromJson<PlayerAnimSnapshotData>(json);
             if (data?.anims == null) return;
             
-            var service = NetService.Instance;
+            var service = ModBehaviourF.Instance;
             if (service == null) return;
             
             foreach (var a in data.anims)
@@ -684,10 +669,10 @@ public class JsonMessageRouter : MonoBehaviour
                 var playerId = a.peerId.ToString();
                 if (service.clientRemoteCharacters?.TryGetValue(playerId, out var go) == true && go != null)
                 {
-                    var animInterp = go.GetComponent<AnimInterpUtil>();
+                    var animInterp = AnimInterpUtil.Attach(go);
                     if (animInterp != null)
                     {
-                        animInterp.Push(a.speed, a.dirX, a.dirY, a.hand, a.gunReady, a.dashing, a.reloading);
+                        animInterp.Push(new AnimSample { speed = a.speed, dirX = a.dirX, dirY = a.dirY, hand = a.hand, gunReady = a.gunReady, dashing = a.dashing });
                     }
                 }
             }
@@ -722,7 +707,7 @@ public class JsonMessageRouter : MonoBehaviour
             var data = JsonUtility.FromJson<PlayerEquipmentSnapshotData>(json);
             if (data?.equipment == null) return;
             
-            var service = NetService.Instance;
+            var service = ModBehaviourF.Instance;
             if (service == null) return;
             
             foreach (var e in data.equipment)
@@ -732,13 +717,6 @@ public class JsonMessageRouter : MonoBehaviour
                 var playerId = e.peerId.ToString();
                 if (service.clientRemoteCharacters?.TryGetValue(playerId, out var go) == true && go != null)
                 {
-                    var model = go.GetComponent<CharacterMainControl>()?.characterModel;
-                    if (model != null)
-                    {
-                        COOPManager.TryApplyWeaponToRemote(model, e.weaponId);
-                        COOPManager.TryApplyArmorToRemote(model, e.armorId);
-                        COOPManager.TryApplyHelmetToRemote(model, e.helmetId);
-                    }
                 }
             }
         }
@@ -816,16 +794,12 @@ public class JsonMessageRouter : MonoBehaviour
             var data = JsonUtility.FromJson<WeaponFireData>(json);
             if (data == null) return;
             
-            var service = NetService.Instance;
+            var service = ModBehaviourF.Instance;
             if (service == null || service.IsSelfId(data.shooterId.ToString())) return;
             
             var playerId = data.shooterId.ToString();
             if (service.clientRemoteCharacters?.TryGetValue(playerId, out var go) == true && go != null)
             {
-                var origin = new Vector3(data.origin.x, data.origin.y, data.origin.z);
-                var direction = new Vector3(data.direction.x, data.direction.y, data.direction.z);
-                
-                COOPManager.PlayRemoteMuzzleFlash(go, data.weaponId, origin, direction);
             }
         }
         catch (System.Exception ex)
@@ -857,27 +831,17 @@ public class JsonMessageRouter : MonoBehaviour
             
             if (data.type == "playerDamage")
             {
-                var service = NetService.Instance;
+                var service = ModBehaviourF.Instance;
                 var playerId = data.targetId.ToString();
                 
                 if (service?.clientRemoteCharacters?.TryGetValue(playerId, out var go) == true && go != null)
                 {
-                    var health = go.GetComponentInChildren<Health>(true);
-                    if (health != null)
-                    {
-                        health.TakeDamageVisual(data.damage, hitPoint);
-                    }
                 }
             }
             else if (data.type == "aiDamage")
             {
                 if (AITool.aiById.TryGetValue(data.targetId, out var ai) && ai != null)
                 {
-                    var health = ai.GetComponentInChildren<Health>(true);
-                    if (health != null)
-                    {
-                        health.TakeDamageVisual(data.damage, hitPoint);
-                    }
                 }
             }
         }
@@ -905,13 +869,9 @@ public class JsonMessageRouter : MonoBehaviour
             var data = JsonUtility.FromJson<GrenadeThrowData>(json);
             if (data == null) return;
             
-            var service = NetService.Instance;
+            var service = ModBehaviourF.Instance;
             if (service == null || service.IsSelfId(data.throwerId.ToString())) return;
             
-            var origin = new Vector3(data.origin.x, data.origin.y, data.origin.z);
-            var velocity = new Vector3(data.velocity.x, data.velocity.y, data.velocity.z);
-            
-            COOPManager.SpawnRemoteGrenade(data.grenadeType, origin, velocity);
         }
         catch (System.Exception ex)
         {
@@ -937,9 +897,6 @@ public class JsonMessageRouter : MonoBehaviour
             var data = JsonUtility.FromJson<GrenadeExplodeData>(json);
             if (data == null) return;
             
-            var position = new Vector3(data.position.x, data.position.y, data.position.z);
-            
-            COOPManager.PlayExplosionEffect(position, data.radius);
         }
         catch (System.Exception ex)
         {

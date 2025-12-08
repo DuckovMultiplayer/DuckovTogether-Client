@@ -18,7 +18,7 @@ namespace EscapeFromDuckovCoopMod;
 
 public class WeaponRequest
 {
-    private NetService Service => NetService.Instance;
+    private ModBehaviourF Service => ModBehaviourF.Instance;
 
     private bool IsServer => Service != null && Service.IsServer;
     private NetManager netManager => Service?.netManager;

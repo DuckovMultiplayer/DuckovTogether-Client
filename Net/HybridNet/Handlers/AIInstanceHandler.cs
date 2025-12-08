@@ -41,7 +41,7 @@ namespace EscapeFromDuckovCoopMod.Net.HybridNet.Handlers
 
         private static void OnAIInstanceState(AIInstanceStateMessage msg, NetPeer peer)
         {
-            if (NetService.Instance.IsServer)
+            if (ModBehaviourF.Instance.IsServer)
                 return;
 
             var instance = GameObject.Find($"AI_{msg.InstanceId}");

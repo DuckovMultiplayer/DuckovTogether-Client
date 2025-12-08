@@ -314,7 +314,7 @@ public class RelayServerManager : MonoBehaviour
                         };
                         SendToRelay(joinMessage);
                         
-                        var netService = NetService.Instance;
+                        var netService = ModBehaviourF.Instance;
                         if (netService != null)
                         {
                             netService.SetRelayRoomId(_myRoom.RoomId);
@@ -485,7 +485,7 @@ public class RelayServerManager : MonoBehaviour
     
     private int GetCurrentPlayerCount()
     {
-        var netService = NetService.Instance;
+        var netService = ModBehaviourF.Instance;
         if (netService == null) return 1;
         
         int count = 1;
@@ -517,7 +517,7 @@ public class RelayServerManager : MonoBehaviour
         
         LoggerHelper.Log($"[Relay] 已发送加入房间请求，房间ID: {room.RoomId}");
         
-        var netService = NetService.Instance;
+        var netService = ModBehaviourF.Instance;
         if (netService != null)
         {
             if (!netService.networkStarted)

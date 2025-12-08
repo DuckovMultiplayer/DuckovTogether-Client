@@ -134,21 +134,6 @@ internal static class Patch_Client_OnDead_ReportCorpseTree
 }
 
 [HarmonyPatch(typeof(CharacterMainControl), "OnDead")]
-internal static class Patch_Server_OnDead_Host_UsePlayerTree
-{
-    private static void Postfix(CharacterMainControl __instance)
-    {
-        var mod = ModBehaviourF.Instance;
-        if (mod == null || !mod.networkStarted) return;
-
-        var lm = LevelManager.Instance;
-        if (lm == null || __instance != lm.MainCharacter) return; // 只处理主机自己的本机主角
-
-        COOPManager.Host_Handle.Server_HandleHostDeathViaTree(__instance); // ← 走“客户端同款”的树路径
-    }
-}
-
-[HarmonyPatch(typeof(CharacterMainControl), "OnDead")]
 internal static class Patch_Client_OnDead_MarkAll_ForBlock
 {
     private static void Prefix(CharacterMainControl __instance)

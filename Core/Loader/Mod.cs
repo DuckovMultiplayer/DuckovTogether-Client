@@ -145,28 +145,28 @@ public partial class ModBehaviourF : MonoBehaviour
     private bool isinit; 
 
     private bool isinit2;
-    private NetService Service => NetService.Instance;
+    private Net.CoopNetClient Client => Net.CoopNetClient.Instance;
     [System.Obsolete("Client is never server. Headless server handles all server logic.")]
     public bool IsServer => false;
-    public NetManager netManager => Service?.netManager;
-    public NetDataWriter writer => Service?.writer;
-    public NetPeer connectedPeer => Service?.connectedPeer;
-    public PlayerStatus localPlayerStatus => Service?.localPlayerStatus;
-    public bool networkStarted => Service != null && Service.networkStarted;
-    public string manualIP => Service?.manualIP;
-    public List<string> hostList => Service?.hostList;
-    public HashSet<string> hostSet => Service?.hostSet;
-    public bool isConnecting => Service != null && Service.isConnecting;
-    public string manualPort => Service?.manualPort;
-    public string status => Service?.status;
-    public int port => Service?.port ?? 0;
-    public float broadcastInterval => Service?.broadcastInterval ?? 5f;
-    public float syncInterval => Service?.syncInterval ?? 0.015f; 
+    public NetManager netManager => Client?.NetManager;
+    public NetDataWriter writer => Client?.Writer;
+    public NetPeer connectedPeer => Client?.ServerPeer;
+    public PlayerStatus localPlayerStatus { get; set; }
+    public bool networkStarted => Client?.IsConnected ?? false;
+    public string manualIP { get; set; } = "127.0.0.1";
+    public List<string> hostList { get; } = new();
+    public HashSet<string> hostSet { get; } = new();
+    public bool isConnecting => Client?.IsConnecting ?? false;
+    public string manualPort { get; set; } = "9050";
+    public string status { get; set; } = "";
+    public int port { get; set; } = 9050;
+    public float broadcastInterval { get; set; } = 5f;
+    public float syncInterval { get; set; } = 0.015f;
 
-    public Dictionary<NetPeer, GameObject> remoteCharacters => Service?.remoteCharacters;
-    public Dictionary<NetPeer, PlayerStatus> playerStatuses => Service?.playerStatuses;
-    public Dictionary<string, GameObject> clientRemoteCharacters => Service?.clientRemoteCharacters;
-    public Dictionary<string, PlayerStatus> clientPlayerStatuses => Service?.clientPlayerStatuses;
+    public Dictionary<NetPeer, GameObject> remoteCharacters { get; } = new();
+    public Dictionary<NetPeer, PlayerStatus> playerStatuses { get; } = new();
+    public Dictionary<string, GameObject> clientRemoteCharacters { get; } = new();
+    public Dictionary<string, PlayerStatus> clientPlayerStatuses { get; } = new();
     public bool ClientLootSetupActive => networkStarted && _clientLootSetupDepth > 0;
 
     public bool IsClient => networkStarted;
@@ -452,11 +452,11 @@ public partial class ModBehaviourF : MonoBehaviour
                 AITool.ApplyAiTransform(id, p, f);
             }
 
-            if (NetService.Instance.netManager != null)
+            if (ModBehaviourF.Instance.netManager != null)
             {
                 if (!SteamP2PLoader.Instance._isOptimized && SteamP2PLoader.Instance.UseSteamP2P)
                 {
-                    NetService.Instance.netManager.UpdateTime = 1;
+                    ModBehaviourF.Instance.netManager.UpdateTime = 1;
                     SteamP2PLoader.Instance._isOptimized = true;
                     Debug.Log("[SteamP2P扩展] ✓ LiteNetLib网络线程已优化 (1ms 更新周期)");
                 }
@@ -607,7 +607,7 @@ public partial class ModBehaviourF : MonoBehaviour
 
     private void OnDestroy()
     {
-        NetService.Instance.StopNetwork();
+        ModBehaviourF.Instance.StopNetwork();
     }
 
     

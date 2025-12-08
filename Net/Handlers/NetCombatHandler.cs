@@ -37,21 +37,8 @@ public class ClientCombatManager : MonoBehaviour
         UpdateGrenades();
     }
     
-    private void RegisterEvents()
-    {
-        ClientEvents.OnRemoteWeaponFire += OnRemoteWeaponFire;
-        ClientEvents.OnDamageReceived += OnDamageReceived;
-        ClientEvents.OnGrenadeThrow += OnGrenadeThrow;
-        ClientEvents.OnGrenadeExplode += OnGrenadeExplode;
-    }
-    
-    private void UnregisterEvents()
-    {
-        ClientEvents.OnRemoteWeaponFire -= OnRemoteWeaponFire;
-        ClientEvents.OnDamageReceived -= OnDamageReceived;
-        ClientEvents.OnGrenadeThrow -= OnGrenadeThrow;
-        ClientEvents.OnGrenadeExplode -= OnGrenadeExplode;
-    }
+    private void RegisterEvents() { }
+    private void UnregisterEvents() { }
     
     private void LoadEffectPrefabs()
     {

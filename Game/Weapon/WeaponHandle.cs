@@ -34,7 +34,7 @@ public class WeaponHandle
     private readonly Dictionary<int, float> _speedCacheByWeaponType = new();
     public bool _hasPayloadHint;
     public ProjectileContext _payloadHint;
-    private NetService Service => NetService.Instance;
+    private ModBehaviourF Service => ModBehaviourF.Instance;
 
     private bool IsServer => Service != null && Service.IsServer;
     private NetManager netManager => Service?.netManager;
@@ -325,12 +325,12 @@ public class WeaponHandle
             }
         }
 
-        if (NetService.Instance.IsSelfId(shooterId))
+        if (ModBehaviourF.Instance.IsSelfId(shooterId))
             return;
 
         
         CharacterMainControl shooterCMC = null;
-        if (NetService.Instance.IsSelfId(shooterId)) shooterCMC = CharacterMainControl.Main;
+        if (ModBehaviourF.Instance.IsSelfId(shooterId)) shooterCMC = CharacterMainControl.Main;
         else if (clientRemoteCharacters.TryGetValue(shooterId, out var shooterGo) && shooterGo)
             shooterCMC = shooterGo.GetComponent<CharacterMainControl>();
 
@@ -692,7 +692,6 @@ public class WeaponHandle
         }
 
         FxManager.PlayMuzzleFxAndShell(shooterId, weaponType, muzzle, finalDir);
-        COOPManager.HostPlayer_Apply.PlayShootAnimOnServerPeer(peer);
 
         writer.Reset();
         writer.Put(shooterId);

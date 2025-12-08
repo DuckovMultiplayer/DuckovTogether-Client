@@ -314,13 +314,13 @@ namespace EscapeFromDuckovCoopMod.Utils.NetHelper
         /// </summary>
         public void BroadcastMainThread(NetDataWriter writer, MessagePriority priority, DeliveryMethod deliveryMethod)
         {
-            if (NetService.Instance == null || !NetService.Instance.IsServer)
+            if (ModBehaviourF.Instance == null || !ModBehaviourF.Instance.IsServer)
             {
                 Debug.LogWarning("[NetMessageSender] BroadcastMainThread: 仅服务端可以广播");
                 return;
             }
 
-            foreach (var peer in NetService.Instance.playerStatuses.Keys)
+            foreach (var peer in ModBehaviourF.Instance.playerStatuses.Keys)
             {
                 if (peer != null && peer.ConnectionState == ConnectionState.Connected)
                 {
@@ -334,13 +334,13 @@ namespace EscapeFromDuckovCoopMod.Utils.NetHelper
         /// </summary>
         public void BroadcastBackground(NetDataWriter writer, MessagePriority priority, DeliveryMethod deliveryMethod)
         {
-            if (NetService.Instance == null || !NetService.Instance.IsServer)
+            if (ModBehaviourF.Instance == null || !ModBehaviourF.Instance.IsServer)
             {
                 Debug.LogWarning("[NetMessageSender] BroadcastBackground: 仅服务端可以广播");
                 return;
             }
 
-            foreach (var peer in NetService.Instance.playerStatuses.Keys)
+            foreach (var peer in ModBehaviourF.Instance.playerStatuses.Keys)
             {
                 if (peer != null && peer.ConnectionState == ConnectionState.Connected)
                 {

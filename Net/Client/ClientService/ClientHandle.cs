@@ -18,7 +18,7 @@ namespace EscapeFromDuckovCoopMod;
 
 public class ClientHandle
 {
-    private NetService Service => NetService.Instance;
+    private ModBehaviourF Service => ModBehaviourF.Instance;
 
     private bool IsServer => Service != null && Service.IsServer;
     private NetManager netManager => Service?.netManager;
@@ -99,11 +99,12 @@ public class ClientHandle
 
         if (isInGame && !remoteCharacters.ContainsKey(peer))
         {
-            
+            // Create a new character
             var faceJson = st.CustomFaceJson ?? string.Empty;
             CreateRemoteCharacter.CreateRemoteCharacterAsync(peer, position, rotation, faceJson).Forget();
-            foreach (var e in equipmentList) COOPManager.HostPlayer_Apply.ApplyEquipmentUpdate(peer, e.SlotHash, e.ItemId).Forget();
-            foreach (var w in weaponList) COOPManager.HostPlayer_Apply.ApplyWeaponUpdate(peer, w.SlotHash, w.ItemId).Forget();
+            var playerId = peer.EndPoint.ToString();
+            foreach (var e in equipmentList) COOPManager.ClientPlayer_Apply.ApplyEquipmentUpdate_Client(playerId, e.SlotHash, e.ItemId).Forget();
+            foreach (var w in weaponList) COOPManager.ClientPlayer_Apply.ApplyWeaponUpdate_Client(playerId, w.SlotHash, w.ItemId).Forget();
         }
         else if (isInGame)
         {
@@ -113,8 +114,9 @@ public class ClientHandle
                 go.GetComponentInChildren<CharacterMainControl>().modelRoot.transform.rotation = rotation;
             }
 
-            foreach (var e in equipmentList) COOPManager.HostPlayer_Apply.ApplyEquipmentUpdate(peer, e.SlotHash, e.ItemId).Forget();
-            foreach (var w in weaponList) COOPManager.HostPlayer_Apply.ApplyWeaponUpdate(peer, w.SlotHash, w.ItemId).Forget();
+            var playerId = peer.EndPoint.ToString();
+            foreach (var e in equipmentList) COOPManager.ClientPlayer_Apply.ApplyEquipmentUpdate_Client(playerId, e.SlotHash, e.ItemId).Forget();
+            foreach (var w in weaponList) COOPManager.ClientPlayer_Apply.ApplyWeaponUpdate_Client(playerId, w.SlotHash, w.ItemId).Forget();
         }
 
         playerStatuses[peer] = st;

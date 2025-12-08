@@ -36,7 +36,7 @@ public static class AIName
     public static readonly AccessTools.FieldRef<CharacterRandomPreset, CharacterIconTypes>
         FR_IconType = AccessTools.FieldRefAccess<CharacterRandomPreset, CharacterIconTypes>("characterIconType");
 
-    private static NetService Service => NetService.Instance;
+    private static ModBehaviourF Service => ModBehaviourF.Instance;
     private static bool IsServer => Service != null && Service.IsServer;
     private static NetManager netManager => Service?.netManager;
     private static NetDataWriter writer => Service?.writer;

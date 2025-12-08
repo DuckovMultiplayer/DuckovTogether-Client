@@ -66,7 +66,7 @@ public class SceneNet : MonoBehaviour
     private float _cliGateDeadline;
 
     public bool _srvSceneGateOpen; 
-    private NetService Service => NetService.Instance;
+    private ModBehaviourF Service => ModBehaviourF.Instance;
 
     private bool IsServer => Service != null && Service.IsServer;
     private NetManager netManager => Service?.netManager;
@@ -318,7 +318,7 @@ public class SceneNet : MonoBehaviour
         if (!DedicatedServerMode.ShouldRunHostLogic()) return;
 
         
-        var pid = fromPeer != null ? NetService.Instance.GetPlayerId(fromPeer) : NetService.Instance.GetPlayerId(null);
+        var pid = fromPeer != null ? ModBehaviourF.Instance.GetPlayerId(fromPeer) : ModBehaviourF.Instance.GetPlayerId(null);
 
         if (!sceneVoteActive) return;
         if (!sceneReady.ContainsKey(pid)) return; 
@@ -584,7 +584,7 @@ public class SceneNet : MonoBehaviour
             IsReady = ready
         };
 
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         if (service != null && service.connectedPeer != null)
         {
             Net.HybridNet.HybridNetCore.Send(readySetMsg, service.connectedPeer);
@@ -970,10 +970,10 @@ public class SceneNet : MonoBehaviour
         }
 
         
-        if (NetService.Instance != null && !NetService.Instance.IsServer)
+        if (ModBehaviourF.Instance != null && !ModBehaviourF.Instance.IsServer)
         {
             Debug.Log("[AUTO_RECONNECT] 场景门控完成，触发自动重连检查");
-            NetService.Instance.TryAutoReconnect();
+            ModBehaviourF.Instance.TryAutoReconnect();
         }
     }
 

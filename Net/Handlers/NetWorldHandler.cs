@@ -44,25 +44,8 @@ public class ClientWorldManager : MonoBehaviour
         }
     }
     
-    private void RegisterEvents()
-    {
-        ClientEvents.OnSceneLoad += OnSceneLoadRequested;
-        ClientEvents.OnForceSceneLoad += OnForceSceneLoad;
-        ClientEvents.OnWorldState += OnWorldState;
-        ClientEvents.OnTimeSync += OnTimeSync;
-        ClientEvents.OnWeatherSync += OnWeatherSync;
-        ClientEvents.OnDoorInteract += OnDoorInteract;
-    }
-    
-    private void UnregisterEvents()
-    {
-        ClientEvents.OnSceneLoad -= OnSceneLoadRequested;
-        ClientEvents.OnForceSceneLoad -= OnForceSceneLoad;
-        ClientEvents.OnWorldState -= OnWorldState;
-        ClientEvents.OnTimeSync -= OnTimeSync;
-        ClientEvents.OnWeatherSync -= OnWeatherSync;
-        ClientEvents.OnDoorInteract -= OnDoorInteract;
-    }
+    private void RegisterEvents() { }
+    private void UnregisterEvents() { }
     
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {

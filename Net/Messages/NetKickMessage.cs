@@ -42,7 +42,7 @@ public static class KickMessage
     
     public static void Server_KickPlayer(ulong targetSteamId, string reason = "被主机踢出")
     {
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         if (service == null || !service.IsServer)
         {
             Debug.LogWarning("[KickMessage] 只有主机可以踢人");
@@ -99,7 +99,7 @@ public static class KickMessage
                     Debug.LogWarning($"[KickMessage] 收到踢人消息: {kickData.reason}");
 
                     
-                    var service = NetService.Instance;
+                    var service = ModBehaviourF.Instance;
                     if (service != null)
                     {
                         

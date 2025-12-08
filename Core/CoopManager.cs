@@ -22,8 +22,6 @@ namespace EscapeFromDuckovCoopMod;
 
 public class COOPManager
 {
-    public static HostPlayerApply HostPlayer_Apply;
-
     public static ClientPlayerApply ClientPlayer_Apply;
     public static LootNet LootNet;
     public static AIHandle AIHandle;
@@ -39,13 +37,11 @@ public class COOPManager
     public static AIHealth AIHealth;
     public static Buff_ Buff;
     public static WeaponRequest WeaponRequest;
-    public static HostHandle Host_Handle;
     public static ItemRequest ItemRequest;
-    private NetService Service => NetService.Instance;
+    private ModBehaviourF Service => ModBehaviourF.Instance;
 
     public static void InitManager()
     {
-        HostPlayer_Apply = new HostPlayerApply();
         ClientPlayer_Apply = new ClientPlayerApply();
         LootNet = new LootNet();
         AIHandle = new AIHandle();
@@ -61,7 +57,6 @@ public class COOPManager
         AIHealth = new AIHealth();
         Buff = new Buff_();
         WeaponRequest = new WeaponRequest();
-        Host_Handle = new HostHandle();
         ItemRequest = new ItemRequest();
     }
 
@@ -458,7 +453,7 @@ public class COOPManager
 
     public static void EnsureRemotePlayersHaveHealthBar()
     {
-        foreach (var kv in NetService.Instance.remoteCharacters)
+        foreach (var kv in ModBehaviourF.Instance.remoteCharacters)
         {
             var go = kv.Value;
             if (!go) continue;

@@ -22,7 +22,7 @@ namespace EscapeFromDuckovCoopMod.Main.AI
 
         private void Update()
         {
-            if (NetService.Instance == null || NetService.Instance.IsServer)
+            if (ModBehaviourF.Instance == null || ModBehaviourF.Instance.IsServer)
                 return;
 
             if (_pendingSpawns.Count > 0 && Time.time - _lastSpawnTime > SPAWN_INTERVAL)
@@ -40,7 +40,7 @@ namespace EscapeFromDuckovCoopMod.Main.AI
 
         public void Server_RegisterAIInstance(GameObject aiObject, string sceneId)
         {
-            if (!NetService.Instance.IsServer)
+            if (!ModBehaviourF.Instance.IsServer)
                 return;
 
             string instanceId = GenerateInstanceId();
@@ -63,7 +63,7 @@ namespace EscapeFromDuckovCoopMod.Main.AI
 
         public void Client_ReceiveAISpawn(AIInstanceData data)
         {
-            if (NetService.Instance.IsServer)
+            if (ModBehaviourF.Instance.IsServer)
                 return;
 
             _pendingSpawns.Enqueue(data);
@@ -92,7 +92,7 @@ namespace EscapeFromDuckovCoopMod.Main.AI
 
         public void Server_UnregisterAIInstance(string instanceId)
         {
-            if (!NetService.Instance.IsServer)
+            if (!ModBehaviourF.Instance.IsServer)
                 return;
 
             if (_serverInstances.Remove(instanceId))
@@ -103,7 +103,7 @@ namespace EscapeFromDuckovCoopMod.Main.AI
 
         public void Client_ReceiveAIDestroy(string instanceId)
         {
-            if (NetService.Instance.IsServer)
+            if (ModBehaviourF.Instance.IsServer)
                 return;
 
             if (_clientInstances.TryGetValue(instanceId, out var instance))
@@ -129,7 +129,7 @@ namespace EscapeFromDuckovCoopMod.Main.AI
                 PrefabPath = data.PrefabPath
             };
 
-            var service = NetService.Instance;
+            var service = ModBehaviourF.Instance;
             if (service?.playerStatuses != null)
             {
                 foreach (var kv in service.playerStatuses)
@@ -146,7 +146,7 @@ namespace EscapeFromDuckovCoopMod.Main.AI
                 InstanceId = instanceId
             };
 
-            var service = NetService.Instance;
+            var service = ModBehaviourF.Instance;
             if (service?.playerStatuses != null)
             {
                 foreach (var kv in service.playerStatuses)
@@ -158,7 +158,7 @@ namespace EscapeFromDuckovCoopMod.Main.AI
 
         private string GenerateInstanceId()
         {
-            return $"{NetService.Instance.GetPlayerId(null)}_{Time.frameCount}_{UnityEngine.Random.Range(1000, 9999)}";
+            return $"{ModBehaviourF.Instance.GetPlayerId(null)}_{Time.frameCount}_{UnityEngine.Random.Range(1000, 9999)}";
         }
 
         private string GetPrefabPath(GameObject obj)
@@ -198,7 +198,7 @@ namespace EscapeFromDuckovCoopMod.Main.AI
 
         private void Update()
         {
-            if (NetService.Instance.IsServer && Time.time - _lastSyncTime > SYNC_INTERVAL)
+            if (ModBehaviourF.Instance.IsServer && Time.time - _lastSyncTime > SYNC_INTERVAL)
             {
                 SyncState();
                 _lastSyncTime = Time.time;
@@ -215,7 +215,7 @@ namespace EscapeFromDuckovCoopMod.Main.AI
                 PosZ = transform.position.z
             };
 
-            var service = NetService.Instance;
+            var service = ModBehaviourF.Instance;
             if (service?.playerStatuses != null)
             {
                 foreach (var kv in service.playerStatuses)

@@ -49,7 +49,7 @@ public static class HybridNetIntegration
     {
         if (!_initialized) return;
         
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         if (service == null || !service.networkStarted) return;
         
         if (service.IsServer)
@@ -60,7 +60,7 @@ public static class HybridNetIntegration
     
     private static void UpdatePlayerPositions()
     {
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         if (service == null) return;
         
         var mainPlayer = CharacterMainControl.Main;

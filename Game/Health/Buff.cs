@@ -18,7 +18,7 @@ namespace EscapeFromDuckovCoopMod;
 
 public class Buff_
 {
-    private NetService Service => NetService.Instance;
+    private ModBehaviourF Service => ModBehaviourF.Instance;
 
 
     private Dictionary<string, GameObject> clientRemoteCharacters => Service?.clientRemoteCharacters;
@@ -49,7 +49,7 @@ public class Buff_
 
     public async UniTask ApplyBuffProxy_Client(string playerId, int weaponTypeId, int buffId)
     {
-        if (NetService.Instance.IsSelfId(playerId)) return; 
+        if (ModBehaviourF.Instance.IsSelfId(playerId)) return; 
         if (!clientRemoteCharacters.TryGetValue(playerId, out var go) || go == null)
         {
             

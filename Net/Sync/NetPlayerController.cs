@@ -73,7 +73,7 @@ public class RemotePlayerManager : MonoBehaviour
         if (playerObjects.Length > 0)
             return playerObjects[0];
         
-        var candidates = Object.FindObjectsOfType<MonoBehaviour>();
+        var candidates = UnityEngine.Object.FindObjectsOfType<MonoBehaviour>();
         foreach (var c in candidates)
         {
             var typeName = c.GetType().Name;

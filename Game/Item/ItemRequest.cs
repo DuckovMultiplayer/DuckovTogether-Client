@@ -20,7 +20,7 @@ namespace EscapeFromDuckovCoopMod;
 
 public class ItemRequest
 {
-    private NetService Service => NetService.Instance;
+    private ModBehaviourF Service => ModBehaviourF.Instance;
 
 
     private bool IsServer => Service != null && Service.IsServer;

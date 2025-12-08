@@ -78,7 +78,6 @@ public static class HybridNetBridge
         
         HybridNetCore.RegisterHandler<PlayerJoinMessage>((msg, peer) =>
         {
-            COOPManager.Host_Handle?.HandlePlayerJoinFromMessage(peer, msg);
         });
         
         HybridNetCore.RegisterHandler<PlayerDeadMessage>((msg, peer) =>

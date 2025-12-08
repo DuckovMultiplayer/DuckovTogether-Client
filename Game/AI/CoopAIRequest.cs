@@ -23,7 +23,7 @@ public class AIRequest : MonoBehaviour
 {
     public static AIRequest Instance;
 
-    private static NetService Service => NetService.Instance;
+    private static ModBehaviourF Service => ModBehaviourF.Instance;
     private static bool IsServer => Service != null && Service.IsServer;
     private static NetManager netManager => Service?.netManager;
     private static NetDataWriter writer => Service?.writer;
@@ -69,7 +69,7 @@ public class AIRequest : MonoBehaviour
         }
         else
         {
-            var service = NetService.Instance;
+            var service = ModBehaviourF.Instance;
             if (service?.playerStatuses != null)
             {
                 foreach (var kv in service.playerStatuses)

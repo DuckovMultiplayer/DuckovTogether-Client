@@ -33,8 +33,9 @@ namespace EscapeFromDuckovCoopMod;
 public class MModUI : MonoBehaviour
 {
     public static MModUI Instance;
+    public NetworkTransportMode TransportMode => NetworkTransportMode.Direct;
+    public ModBehaviourF Service => ModBehaviourF.Instance;
 
-    
     private Canvas _canvas;
     private MModUIComponents _components;
     private MModUILayoutBuilder _layoutBuilder;
@@ -3471,19 +3472,16 @@ public class MModUI : MonoBehaviour
         SetStatusText($"[OK] 已输出网络状态 ({summary})", ModernColors.Success);
     }
 
-    internal void OnTransportModeChanged(NetworkTransportMode newMode)
+    internal void OnTransportModeChanged()
     {
         if (Service == null) return;
-
-        Mod.SetTransportMode(newMode);
         UpdateTransportModePanels();
+    }
 
-        if (newMode == NetworkTransportMode.SteamP2P && LobbyManager != null)
-        {
-            
-            _displayedSteamLobbies.Clear();
-            LobbyManager.RequestLobbyList();
-        }
+    internal void OnTransportModeChanged(NetworkTransportMode mode)
+    {
+        Service?.SetTransportMode((int)mode);
+        OnTransportModeChanged();
     }
 
     private void OnSteamCreateOrLeave()
@@ -3498,7 +3496,7 @@ public class MModUI : MonoBehaviour
         if (manager.IsInLobby)
         {
             
-            NetMod.Instance?.StopNetwork();
+            ModBehaviourF.Instance?.StopNetwork();
             manager.LeaveLobby();  
 
             SetStatusText("[OK] " + CoopLocalization.Get("ui.steam.lobby.left"), ModernColors.Info);
@@ -3507,14 +3505,14 @@ public class MModUI : MonoBehaviour
         {
             
             UpdateLobbyOptionsFromUI();
-            NetMod.Instance?.StartNetwork(true);
+            ModBehaviourF.Instance?.StartNetwork(true);
             SetStatusText("[*] " + CoopLocalization.Get("ui.steam.lobby.creating"), ModernColors.Info);
         }
     }
 
     private void UpdateSteamLobbyList()
     {
-        if (_components?.SteamLobbyListContent == null || TransportMode != NetworkTransportMode.SteamP2P)
+        if (_components?.SteamLobbyListContent == null)
             return;
 
         
@@ -3632,7 +3630,7 @@ public class MModUI : MonoBehaviour
         if (netManager == null || !netManager.IsRunning || IsServer || !networkStarted)
         {
             LoggerHelper.Log("[MModUI] 启动客户端网络模式");
-            NetMod.Instance?.StartNetwork(false);
+            ModBehaviourF.Instance?.StartNetwork(false);
         }
 
         var password = lobby.RequiresPassword ? _steamJoinPassword : string.Empty;

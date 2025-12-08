@@ -21,7 +21,7 @@ public static class AISystemMigrator
     
     public static void Update()
     {
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         if (service == null || !service.networkStarted) return;
         
         if (service.IsServer)

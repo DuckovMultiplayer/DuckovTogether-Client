@@ -414,7 +414,7 @@ public class LootManager : MonoBehaviour
     private readonly HashSet<Inventory> _pendingBroadcastInvs = new(new RefEq<Inventory>());
     private bool _hasPendingBroadcasts = false;
 
-    private NetService Service => NetService.Instance;
+    private ModBehaviourF Service => ModBehaviourF.Instance;
     private bool IsServer => Service != null && Service.IsServer;
     private NetManager netManager => Service?.netManager;
     private NetDataWriter writer => Service?.writer;

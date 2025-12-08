@@ -198,7 +198,7 @@ public class TeleportManager : MonoBehaviour
         }
         
         
-        var netService = NetService.Instance;
+        var netService = ModBehaviourF.Instance;
         if (netService == null || netService.netManager == null || !netService.netManager.IsRunning)
         {
             LoggerHelper.LogWarning("[Teleport] 网络未启动");

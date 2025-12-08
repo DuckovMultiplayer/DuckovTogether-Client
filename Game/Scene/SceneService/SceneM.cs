@@ -23,7 +23,7 @@ namespace EscapeFromDuckovCoopMod;
 public static class SceneM
 {
     public static readonly Dictionary<NetPeer, string> _srvPeerScene = new();
-    private static NetService Service => NetService.Instance;
+    private static ModBehaviourF Service => ModBehaviourF.Instance;
     private static bool IsServer => Service != null && Service.IsServer;
     private static NetManager netManager => Service?.netManager;
     private static NetDataWriter writer => Service?.writer;
@@ -87,7 +87,7 @@ public static class SceneM
                 var cmc = kv.Value ? kv.Value.GetComponent<CharacterMainControl>() : null;
                 if (!LocalPlayerManager.Instance.IsAlive(cmc)) continue;
 
-                var peerScene = NetService.Instance.clientPlayerStatuses.TryGetValue(kv.Key, out var st) ? st?.SceneId : null;
+                var peerScene = ModBehaviourF.Instance.clientPlayerStatuses.TryGetValue(kv.Key, out var st) ? st?.SceneId : null;
                 if (Spectator.AreSameMap(mySceneId, peerScene)) aliveSameScene++;
             }
 

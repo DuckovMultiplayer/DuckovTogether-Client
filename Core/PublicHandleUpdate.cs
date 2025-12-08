@@ -18,7 +18,7 @@ namespace EscapeFromDuckovCoopMod;
 
 public class PublicHandleUpdate
 {
-    private NetService Service => NetService.Instance;
+    private ModBehaviourF Service => ModBehaviourF.Instance;
 
     private bool IsServer => Service != null && Service.IsServer;
     private NetManager netManager => Service?.netManager;
@@ -32,35 +32,11 @@ public class PublicHandleUpdate
 
     public void HandleEquipmentUpdate(NetPeer sender, NetDataReader reader)
     {
-        var endPoint = reader.GetString();
-        var slotHash = reader.GetInt();
-        var itemId = reader.GetString();
-
-        COOPManager.HostPlayer_Apply.ApplyEquipmentUpdate(sender, slotHash, itemId).Forget();
-
-        foreach (var p in netManager.ConnectedPeerList)
-        {
-            if (p == sender) continue;
-            var msg = new Net.HybridNet.PlayerEquipmentUpdateMessage { PlayerId = endPoint, SlotHash = slotHash, ItemId = itemId };
-            Net.HybridNet.HybridNetCore.Send(msg, p);
-        }
     }
 
 
     public void HandleWeaponUpdate(NetPeer sender, NetDataReader reader)
     {
-        var endPoint = reader.GetString();
-        var slotHash = reader.GetInt();
-        var itemId = reader.GetString();
-
-        COOPManager.HostPlayer_Apply.ApplyWeaponUpdate(sender, slotHash, itemId).Forget();
-
-        foreach (var p in netManager.ConnectedPeerList)
-        {
-            if (p == sender) continue;
-            var msg = new Net.HybridNet.PlayerWeaponUpdateMessage { PlayerId = endPoint, SlotHash = slotHash, ItemId = itemId };
-            Net.HybridNet.HybridNetCore.Send(msg, p);
-        }
     }
 
     

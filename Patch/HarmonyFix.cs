@@ -111,7 +111,7 @@ public sealed class RemoteReplicaTag : MonoBehaviour
 [HarmonyPatch(typeof(SetActiveByPlayerDistance), "FixedUpdate")]
 internal static class Patch_SABPD_FixedUpdate_AllPlayersUnion
 {
-    private static NetService Service => NetService.Instance;
+    private static ModBehaviourF Service => ModBehaviourF.Instance;
     private static Dictionary<NetPeer, PlayerStatus> playerStatuses => Service?.playerStatuses;
 
     private static bool Prefix(SetActiveByPlayerDistance __instance)

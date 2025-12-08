@@ -518,7 +518,17 @@ public class LocalPlayerState
     public string SceneId { get; set; } = "";
     public Vector3 Position { get; set; }
     public Vector3 Rotation { get; set; }
+    public Vector3 Velocity { get; set; }
     public int Latency { get; set; }
+    public float Speed { get; set; }
+    public float DirX { get; set; }
+    public float DirY { get; set; }
+    public int HandState { get; set; }
+    public bool GunReady { get; set; }
+    public bool Dashing { get; set; }
+    public bool Reloading { get; set; }
+    public float CurrentHealth { get; set; }
+    public float MaxHealth { get; set; }
 }
 
 public class RemotePlayerState
@@ -549,11 +559,19 @@ public class RemoteAIState
     public string TypeName { get; set; } = "";
     public Vector3 Position { get; set; }
     public Vector3 Rotation { get; set; }
+    public Vector3 Forward { get; set; }
     public float Health { get; set; }
     public float MaxHealth { get; set; }
     public int State { get; set; }
     public float LastUpdateTime { get; set; }
     public GameObject AIObject { get; set; }
+    public bool IsDead { get; set; }
+    public float Speed { get; set; }
+    public float DirX { get; set; }
+    public float DirY { get; set; }
+    public int HandState { get; set; }
+    public bool GunReady { get; set; }
+    public bool Dashing { get; set; }
 }
 
 [Serializable]

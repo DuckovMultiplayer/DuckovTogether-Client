@@ -155,7 +155,7 @@ public static class SceneVoteMessage
             return;
         }
 
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         if (service == null) return;
 
         
@@ -392,7 +392,7 @@ public static class SceneVoteMessage
             return;
 
         
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         if (
             service != null
             && false
@@ -508,7 +508,7 @@ public static class SceneVoteMessage
         bool useLocation
     )
     {
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         return;
 
         var data = new ForceSceneLoadData
@@ -555,7 +555,7 @@ public static class SceneVoteMessage
     
     public static void Client_HandleVoteState(string json)
     {
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         if (service == null)
             return;
 
@@ -753,7 +753,7 @@ public static class SceneVoteMessage
     
     public static void Client_ToggleReady(bool ready)
     {
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         if (service == null)
             return;
 
@@ -801,7 +801,7 @@ public static class SceneVoteMessage
         string locationName
     )
     {
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         if (service == null)
             return;
 
@@ -826,7 +826,7 @@ public static class SceneVoteMessage
     
     public static void Host_HandleVoteRequest(string json)
     {
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         return;
 
         try
@@ -861,7 +861,7 @@ public static class SceneVoteMessage
     
     public static void Host_HandleReadyToggle(string json)
     {
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         return;
 
         try
@@ -889,7 +889,7 @@ public static class SceneVoteMessage
     
     public static void Client_HandleForceSceneLoad(string json)
     {
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         if (service == null)
             return;
 
@@ -1040,7 +1040,7 @@ public static class SceneVoteMessage
             }
 
             
-            var service = NetService.Instance;
+            var service = ModBehaviourF.Instance;
             if (service == null || service.playerStatuses == null)
             {
                 return "";

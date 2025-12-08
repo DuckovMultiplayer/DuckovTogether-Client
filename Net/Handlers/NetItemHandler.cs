@@ -29,21 +29,8 @@ public class ClientItemManager : MonoBehaviour
         RegisterEvents();
     }
     
-    private void RegisterEvents()
-    {
-        ClientEvents.OnItemPickup += OnItemPickup;
-        ClientEvents.OnItemDrop += OnItemDrop;
-        ClientEvents.OnLootFullSync += OnLootFullSync;
-        ClientEvents.OnContainerContents += OnContainerContents;
-    }
-    
-    private void UnregisterEvents()
-    {
-        ClientEvents.OnItemPickup -= OnItemPickup;
-        ClientEvents.OnItemDrop -= OnItemDrop;
-        ClientEvents.OnLootFullSync -= OnLootFullSync;
-        ClientEvents.OnContainerContents -= OnContainerContents;
-    }
+    private void RegisterEvents() { }
+    private void UnregisterEvents() { }
     
     private void OnItemPickup(int playerId, int containerId, int slotIndex, int itemTypeId, int count)
     {
@@ -353,7 +340,7 @@ public class DroppedItemSyncData
     public int dropId { get; set; }
     public int itemTypeId { get; set; }
     public int count { get; set; }
-    public Vec3Msg position { get; set; }
+    public Vector3 position { get; set; }
 }
 
 public class ContainerContentsData

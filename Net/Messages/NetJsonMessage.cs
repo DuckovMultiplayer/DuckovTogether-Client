@@ -18,7 +18,7 @@ public static class JsonMessage
     public static void SendToHost(object data, DeliveryMethod deliveryMethod)
     {
         var jsonData = data is string str ? str : JsonConvert.SerializeObject(data, Settings);
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         if (service == null || service.connectedPeer == null || service.IsServer)
             return;
             
@@ -32,7 +32,7 @@ public static class JsonMessage
     public static void SendToPeer(NetPeer peer, object data, DeliveryMethod deliveryMethod = DeliveryMethod.ReliableOrdered)
     {
         var jsonData = data is string str ? str : JsonConvert.SerializeObject(data, Settings);
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         if (service == null || peer == null)
             return;
             
@@ -48,7 +48,7 @@ public static class JsonMessage
         var jsonData = data is string str ? str : JsonConvert.SerializeObject(data, Settings);
         if (!DedicatedServerMode.ShouldBroadcastState())
             return;
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
             
         var writer = service.writer;
         writer.Reset();

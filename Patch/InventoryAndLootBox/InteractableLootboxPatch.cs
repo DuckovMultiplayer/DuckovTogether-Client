@@ -264,8 +264,6 @@ internal static class Patch_Lootbox_CreateFromItem_DeferredSpawn
     private static IEnumerator DeferredSpawn(InteractableLootbox box, CharacterMainControl who)
     {
         yield return null;
-        var mod = ModBehaviourF.Instance;
-        if (mod && mod.IsServer && box) DeadLootBox.Instance.Server_OnDeadLootboxSpawned(box, who);
     }
 }
 

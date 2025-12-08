@@ -1024,7 +1024,7 @@ public class WaitingSynchronizationUI : MonoBehaviour
         image.color = new Color(0.3f, 0.3f, 0.3f, 1f); 
 
         
-        bool isSteamMode = NetService.Instance?.TransportMode == NetworkTransportMode.SteamP2P;
+        bool isSteamMode = ModBehaviourF.Instance?.TransportMode == NetworkTransportMode.SteamP2P;
         bool canLoadSteamAvatar = steamId > 0 && isSteamMode && SteamManager.Initialized;
 
         if (canLoadSteamAvatar)
@@ -1230,7 +1230,7 @@ public class WaitingSynchronizationUI : MonoBehaviour
         
         string displayName = playerName;
         ulong steamId = 0;
-        bool isSteamMode = NetService.Instance?.TransportMode == NetworkTransportMode.SteamP2P;
+        bool isSteamMode = ModBehaviourF.Instance?.TransportMode == NetworkTransportMode.SteamP2P;
 
         if (isSteamMode && SteamManager.Initialized)
         {
@@ -1276,7 +1276,7 @@ public class WaitingSynchronizationUI : MonoBehaviour
                         if (steamId == SteamUser.GetSteamID().m_SteamID)
                         {
                             steamUsername = SteamFriends.GetPersonaName();
-                            bool isHost = NetService.Instance?.IsServer ?? false;
+                            bool isHost = ModBehaviourF.Instance?.IsServer ?? false;
                             string prefix = isHost ? "HOST" : "CLIENT";
                             displayName = $"{prefix}_{steamUsername}";
                         }
@@ -1428,7 +1428,7 @@ public class WaitingSynchronizationUI : MonoBehaviour
         Debug.Log($"[SYNC_UI] 超时保护已启动，最大显示时间: {MAX_UI_DISPLAY_TIME} 秒");
 
         
-        _fpsCheckEnabled = NetService.Instance != null && !NetService.Instance.IsServer;
+        _fpsCheckEnabled = ModBehaviourF.Instance != null && !ModBehaviourF.Instance.IsServer;
         _fpsHistory.Clear();
         _fpsIsStable = false;
         _fpsStableStartTime = 0f;

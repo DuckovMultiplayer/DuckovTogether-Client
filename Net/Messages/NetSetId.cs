@@ -48,7 +48,7 @@ public static class SetIdMessage
             return;
         }
 
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         if (service == null || !service.IsServer)
         {
             Debug.LogWarning("[SetId] SendSetIdToPeer 只能在服务器端调用");
@@ -66,16 +66,12 @@ public static class SetIdMessage
         Debug.Log($"[SetId] 发送SetId给客户端: {networkId}");
     }
 
-    
-    
-    
-    
     public static void HandleSetIdMessage(NetPacketReader reader)
     {
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         if (service == null)
         {
-            Debug.LogWarning("[SetId] NetService未初始化");
+            Debug.LogWarning("[SetId] ModBehaviourF未初始化");
             return;
         }
 
@@ -101,7 +97,6 @@ public static class SetIdMessage
             Debug.Log($"[SetId] 收到主机告知的网络ID: {newId}");
             Debug.Log($"[SetId] 旧ID: {oldId}");
 
-            
             if (service.localPlayerStatus != null)
             {
                 service.localPlayerStatus.EndPoint = newId;
@@ -112,17 +107,13 @@ public static class SetIdMessage
                 Debug.LogWarning("[SetId] localPlayerStatus为空，无法更新");
             }
 
-            
             CleanupSelfDuplicate(oldId, newId);
         }
     }
 
-    
-    
-    
     private static void CleanupSelfDuplicate(string oldId, string newId)
     {
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         if (service == null || service.clientRemoteCharacters == null)
             return;
 

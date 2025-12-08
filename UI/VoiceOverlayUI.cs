@@ -8,7 +8,7 @@ public class VoiceOverlayUI : MonoBehaviour
 {
     public static VoiceOverlayUI Instance;
     
-    private NetService Service => NetService.Instance;
+    private ModBehaviourF Service => ModBehaviourF.Instance;
     private Utils.Database.PlayerInfoDatabase PlayerDb => Utils.Database.PlayerInfoDatabase.Instance;
     
     private Rect overlayRect = new Rect(10, 200, 260, 400);

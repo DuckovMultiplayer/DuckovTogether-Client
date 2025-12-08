@@ -44,7 +44,7 @@ public class LocalPlayerManager : MonoBehaviour
 
     private bool _cliSelfDeathFired;
 
-    private NetService Service => NetService.Instance;
+    private ModBehaviourF Service => ModBehaviourF.Instance;
     private bool IsServer => Service != null && Service.IsServer;
     private NetManager netManager => Service?.netManager;
     private NetDataWriter writer => Service?.writer;
@@ -452,7 +452,7 @@ public class LocalPlayerManager : MonoBehaviour
 public class PlayerStatus
 {
     public string SceneId;
-    private NetService Service => NetService.Instance;
+    private ModBehaviourF Service => ModBehaviourF.Instance;
 
     public int Latency { get; set; }
     public bool IsInGame { get; set; }

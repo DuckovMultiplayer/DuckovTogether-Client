@@ -24,7 +24,7 @@ public static class AudioEventMessage
 {
     public static void ClientSend(in CoopAudioEventPayload payload)
     {
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         if (service == null || service.IsServer || !service.networkStarted)
             return;
 

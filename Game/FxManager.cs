@@ -30,7 +30,7 @@ public class MeleeFxStamp : MonoBehaviour
 
 public static class MeleeFx
 {
-    private static NetService Service => NetService.Instance;
+    private static ModBehaviourF Service => ModBehaviourF.Instance;
 
     public static void SpawnSlashFx(CharacterModel ctrl)
     {
@@ -118,7 +118,7 @@ public static class FxManager
     
     private static bool? _killMarkerSoundExists;
 
-    private static NetService Service => NetService.Instance;
+    private static ModBehaviourF Service => ModBehaviourF.Instance;
     private static bool IsServer => Service != null && Service.IsServer;
     private static NetManager netManager => Service?.netManager;
     private static NetDataWriter writer => Service?.writer;
@@ -136,7 +136,7 @@ public static class FxManager
         {
             
             GameObject shooterGo = null;
-            if (NetService.Instance.IsSelfId(shooterId))
+            if (ModBehaviourF.Instance.IsSelfId(shooterId))
             {
                 var cmSelf = LevelManager.Instance?.MainCharacter?.GetComponent<CharacterMainControl>();
                 if (cmSelf) shooterGo = cmSelf.gameObject;

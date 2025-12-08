@@ -3,7 +3,7 @@
 public class Send_ClientStatus : MonoBehaviour
 {
     public static Send_ClientStatus Instance { get; private set; }
-    private NetService Service => NetService.Instance;
+    private ModBehaviourF Service => ModBehaviourF.Instance;
     
     public void Init()
     {

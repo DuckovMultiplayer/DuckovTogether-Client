@@ -5,7 +5,7 @@ namespace EscapeFromDuckovCoopMod.Net.HybridNet;
 
 public static class HybridNetBroadcast
 {
-    private static NetService Service => NetService.Instance;
+    private static ModBehaviourF Service => ModBehaviourF.Instance;
     private static bool IsServer => Service != null && Service.IsServer;
     private static NetManager NetManager => Service?.netManager;
     

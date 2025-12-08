@@ -26,7 +26,7 @@ public class AISceneVisibilityGuard : MonoBehaviour
     {
         if (!_initialized || _cmc == null) return;
         
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         if (service == null || !service.networkStarted || service.IsServer) return;
         
         var localPlayerManager = LocalPlayerManager.Instance;

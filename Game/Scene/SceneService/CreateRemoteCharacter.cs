@@ -23,7 +23,7 @@ namespace EscapeFromDuckovCoopMod;
 
 public static class CreateRemoteCharacter
 {
-    private static NetService Service => NetService.Instance;
+    private static ModBehaviourF Service => ModBehaviourF.Instance;
     private static bool IsServer => Service != null && Service.IsServer;
     private static NetManager netManager => Service?.netManager;
     private static NetDataWriter writer => Service?.writer;
@@ -120,7 +120,7 @@ public static class CreateRemoteCharacter
 
     public static async UniTask CreateRemoteCharacterForClient(string playerId, Vector3 position, Quaternion rotation, string customFaceJson)
     {
-        if (NetService.Instance.IsSelfId(playerId)) return; 
+        if (ModBehaviourF.Instance.IsSelfId(playerId)) return; 
         if (clientRemoteCharacters.ContainsKey(playerId) && clientRemoteCharacters[playerId] != null) return;
 
         
@@ -169,7 +169,7 @@ public static class CreateRemoteCharacter
         
         if (string.IsNullOrEmpty(customFaceJson))
         {
-            if (NetService.Instance.clientPlayerStatuses.TryGetValue(playerId, out var st) && !string.IsNullOrEmpty(st.CustomFaceJson))
+            if (ModBehaviourF.Instance.clientPlayerStatuses.TryGetValue(playerId, out var st) && !string.IsNullOrEmpty(st.CustomFaceJson))
                 customFaceJson = st.CustomFaceJson;
             else if (CustomFace._cliPendingFace.TryGetValue(playerId, out var pending) && !string.IsNullOrEmpty(pending))
                 customFaceJson = pending;

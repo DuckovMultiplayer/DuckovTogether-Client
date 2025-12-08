@@ -28,7 +28,7 @@ public class DeadLootBox : MonoBehaviour
     public const bool EAGER_BROADCAST_LOOT_STATE_ON_SPAWN = true;
     public static DeadLootBox Instance;
 
-    private NetService Service => NetService.Instance;
+    private ModBehaviourF Service => ModBehaviourF.Instance;
     private bool networkStarted => Service != null && Service.networkStarted;
 
 

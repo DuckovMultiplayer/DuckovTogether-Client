@@ -33,7 +33,7 @@ public static class CoopAudioSync
         }
     }
 
-    private static NetService Service => NetService.Instance;
+    private static ModBehaviourF Service => ModBehaviourF.Instance;
 
     private static bool IsSuppressed => Interlocked.CompareExchange(ref _suppressCount, 0, 0) > 0;
 

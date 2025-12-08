@@ -359,7 +359,7 @@ public class OnlineLobbyUI : MonoBehaviour
             return;
         }
         
-        var netService = NetService.Instance;
+        var netService = ModBehaviourF.Instance;
         if (netService == null)
         {
             LoggerHelper.LogError("[OnlineLobby] NetService未找到");
@@ -478,7 +478,7 @@ public class OnlineLobbyUI : MonoBehaviour
     {
         CloseNodeSelector();
         
-        var netService = NetService.Instance;
+        var netService = ModBehaviourF.Instance;
         if (netService == null)
         {
             LoggerHelper.LogError("[OnlineLobby] NetService未找到");

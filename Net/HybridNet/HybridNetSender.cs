@@ -280,7 +280,7 @@ public static class HybridNetSender
             return;
         }
         
-        var service = NetService.Instance;
+        var service = ModBehaviourF.Instance;
         if (service != null && service.netManager.ConnectedPeersCount > 0)
         {
             var serverPeer = service.netManager.ConnectedPeerList[0];

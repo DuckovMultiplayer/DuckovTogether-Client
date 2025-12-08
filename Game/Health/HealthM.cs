@@ -34,7 +34,7 @@ public class HealthM : MonoBehaviour
     private readonly Dictionary<Health, (float max, float cur)> _srvLastSent = new();
     private readonly Dictionary<Health, float> _srvNextSend = new();
 
-    private NetService Service => NetService.Instance;
+    private ModBehaviourF Service => ModBehaviourF.Instance;
     private bool IsServer => Service != null && Service.IsServer;
     private NetManager netManager => Service?.netManager;
     private NetDataWriter writer => Service?.writer;
@@ -333,7 +333,7 @@ public class HealthM : MonoBehaviour
         _srvNextSend[h] = now + SRV_HP_SEND_COOLDOWN;
 
         
-        var pid = NetService.Instance.GetPlayerId(ownerPeer);
+        var pid = ModBehaviourF.Instance.GetPlayerId(ownerPeer);
 
         
         if (ownerPeer != null && ownerPeer.ConnectionState == ConnectionState.Connected)
