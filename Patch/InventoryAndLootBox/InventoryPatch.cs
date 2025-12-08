@@ -28,7 +28,7 @@ internal static class Patch_Inventory_AddAt_FromLoot
     private static bool Prefix(Inventory __instance, Item item, int atPosition, ref bool __result)
     {
         var m = ModBehaviourF.Instance;
-        if (m == null || !m.networkStarted || m.IsServer) return true;
+        if (m == null || !m.networkStarted) return true;
         if (COOPManager.LootNet._applyingLootState) return true;
 
         var srcInv = item ? item.InInventory : null;
@@ -65,7 +65,7 @@ internal static class Patch_Inventory_AddAt_SlotToPrivate_Reroute
     private static bool Prefix(Inventory __instance, Item item, int atPosition, ref bool __result)
     {
         var m = ModBehaviourF.Instance;
-        if (m == null || !m.networkStarted || m.IsServer) return true;
+        if (m == null || !m.networkStarted) return true;
 
         // 只拦“落到私有库存”的情况（玩家背包/身上/宠物包）
         if (!LootboxDetectUtil.IsPrivateInventory(__instance)) return true;
@@ -407,7 +407,7 @@ internal static class Patch_Inventory_AddAt_LootPut
         if (m == null || !m.networkStarted) return true;
 
         // 只在客户端、且不是“应用服务器快照”阶段时干预
-        if (!m.IsServer && !COOPManager.LootNet._applyingLootState)
+        if (!COOPManager.LootNet._applyingLootState)
         {
             var targetIsLoot = LootboxDetectUtil.IsLootboxInventory(__instance) && !LootboxDetectUtil.IsPrivateInventory(__instance);
             var srcInv = item ? item.InInventory : null;
@@ -476,7 +476,7 @@ internal static class Patch_Inventory_AddItem_LootPut
         if (m == null || !m.networkStarted) return true;
 
         // 只在“真正的战利品容器初始化”时吞掉本地 Add
-        if (!m.IsServer && m.ClientLootSetupActive)
+        if (m.ClientLootSetupActive)
         {
             var isLootInv = LootboxDetectUtil.IsLootboxInventory(__instance)
                             && !LootboxDetectUtil.IsPrivateInventory(__instance);
@@ -499,7 +499,7 @@ internal static class Patch_Inventory_AddItem_LootPut
             }
         }
 
-        if (!m.IsServer && !COOPManager.LootNet._applyingLootState)
+        if (!COOPManager.LootNet._applyingLootState)
         {
             var isLootInv = LootboxDetectUtil.IsLootboxInventory(__instance)
                             && !LootboxDetectUtil.IsPrivateInventory(__instance);
@@ -521,58 +521,7 @@ internal static class Patch_Inventory_AddAt_BroadcastOnServer
 {
     private static void Postfix(Inventory __instance, Item item, int atPosition, bool __result)
     {
-        var m = ModBehaviourF.Instance;
-        if (m == null || !m.networkStarted || !m.IsServer) return;
-        if (!__result || COOPManager.LootNet._serverApplyingLoot) return;
-
-        // ✅ 修复：场景切换时 LevelManager 可能正在初始化，跳过同步避免崩溃
-        try
-        {
-            if (LevelManager.Instance == null || LevelManager.LootBoxInventories == null)
-            {
-                return; // 场景初始化中，跳过
-            }
-        }
-        catch
-        {
-            return; // 访问 LootBoxInventories 失败，说明场景正在切换
-        }
-
-        // ✅ 性能监控：记录检查耗时
-        var checkStartTime = Time.realtimeSinceStartup;
-        bool isLootbox = LootboxDetectUtil.IsLootboxInventory(__instance);
-        bool isPrivate = LootboxDetectUtil.IsPrivateInventory(__instance);
-        var checkDuration = (Time.realtimeSinceStartup - checkStartTime) * 1000f;
-
-        if (checkDuration > 1f) // 超过1ms记录
-        {
-            Debug.LogWarning($"[InventoryPatch] IsLootboxInventory 检查耗时: {checkDuration:F2}ms, isLootbox={isLootbox}, isPrivate={isPrivate}");
-        }
-
-        // ✅ 关键：排除私有库存和非箱子 Inventory（墓碑等）
-        if (!isLootbox || isPrivate)
-        {
-            return; // 墓碑、仓库、宠物包等不同步
-        }
-
-        // ✅ 优化：延迟到帧结束时执行，减少场景加载时的性能压力
-        DeferedRunner.EndOfFrame(() =>
-        {
-            // ✅ 二次检查：确保 Inventory 仍然有效且可同步
-            if (!LootboxDetectUtil.IsLootboxInventory(__instance) || LootboxDetectUtil.IsPrivateInventory(__instance))
-            {
-                return;
-            }
-
-            var broadcastStartTime = Time.realtimeSinceStartup;
-            COOPManager.LootNet.Server_SendLootboxState(null, __instance);
-            var broadcastDuration = (Time.realtimeSinceStartup - broadcastStartTime) * 1000f;
-
-            if (broadcastDuration > 5f) // 超过5ms记录
-            {
-                Debug.LogWarning($"[InventoryPatch] 广播 LootboxState 耗时: {broadcastDuration:F2}ms");
-            }
-        });
+        // Server broadcast patches removed - now handled by HeadlessServer
     }
 }
 
@@ -582,43 +531,7 @@ internal static class Patch_Inventory_AddItem_BroadcastLootState
 {
     private static void Postfix(Inventory __instance, Item item, bool __result)
     {
-        var m = ModBehaviourF.Instance;
-        if (m == null || !m.networkStarted || !m.IsServer) return;
-        if (!__result || COOPManager.LootNet._serverApplyingLoot) return;
-
-        // ✅ 修复：场景切换时 LevelManager 可能正在初始化，跳过同步避免崩溃
-        try
-        {
-            if (LevelManager.Instance == null || LevelManager.LootBoxInventories == null)
-            {
-                return; // 场景初始化中，跳过
-            }
-        }
-        catch
-        {
-            return; // 访问 LootBoxInventories 失败，说明场景正在切换
-        }
-
-        if (!LootboxDetectUtil.IsLootboxInventory(__instance) || LootboxDetectUtil.IsPrivateInventory(__instance)) return;
-
-        // ✅ 再次确认容器确实在 LootBoxInventories 中
-        try
-        {
-            var dict = InteractableLootbox.Inventories;
-            var isLootInv = dict != null && dict.ContainsValue(__instance);
-            if (!isLootInv) return;
-        }
-        catch
-        {
-            return; // 访问失败，跳过
-        }
-
-        // ✅ 优化：延迟到帧结束时执行，减少场景加载时的性能压力
-        DeferedRunner.EndOfFrame(() =>
-        {
-            if (!LootboxDetectUtil.IsLootboxInventory(__instance) || LootboxDetectUtil.IsPrivateInventory(__instance)) return;
-            COOPManager.LootNet.Server_SendLootboxState(null, __instance);
-        });
+        // Server broadcast patches removed - now handled by HeadlessServer
     }
 }
 
@@ -637,32 +550,7 @@ internal static class Patch_Inventory_RemoveAt_BroadcastOnServer
     // Postfix：当主机本地从"公共战利品容器"取出成功后，广播一次全量状态
     private static void Postfix(Inventory __instance, int position, Item __1, bool __result)
     {
-        var m = ModBehaviourF.Instance;
-        if (m == null || !m.networkStarted || !m.IsServer) return; // 仅主机
-        if (!__result || COOPManager.LootNet._serverApplyingLoot) return; // 跳过失败/网络路径内部调用
-
-        // ✅ 修复：场景切换时 LevelManager 可能正在初始化，跳过同步避免崩溃
-        try
-        {
-            if (LevelManager.Instance == null || LevelManager.LootBoxInventories == null)
-            {
-                return; // 场景初始化中，跳过
-            }
-        }
-        catch
-        {
-            return; // 访问 LootBoxInventories 失败，说明场景正在切换
-        }
-
-        if (!LootboxDetectUtil.IsLootboxInventory(__instance)) return; // 只处理战利品容器
-        if (LootboxDetectUtil.IsPrivateInventory(__instance)) return; // 跳过玩家仓库/宠物包等私有库存
-
-        // ✅ 优化：延迟到帧结束时执行，减少场景加载时的性能压力
-        DeferedRunner.EndOfFrame(() =>
-        {
-            if (!LootboxDetectUtil.IsLootboxInventory(__instance) || LootboxDetectUtil.IsPrivateInventory(__instance)) return;
-            COOPManager.LootNet.Server_SendLootboxState(null, __instance); // 广播给所有客户端
-        });
+        // Server broadcast patches removed - now handled by HeadlessServer
     }
 }
 
@@ -674,7 +562,7 @@ internal static class Patch_AddAt_SplitFirst
     private static bool Prefix(Inventory __instance, Item item, int atPosition, ref bool __result)
     {
         var m = ModBehaviourF.Instance;
-        if (m == null || !m.networkStarted || m.IsServer) return true;
+        if (m == null || !m.networkStarted) return true;
 
         if (__instance == null || item == null) return true;
         if (!LootboxDetectUtil.IsLootboxInventory(__instance) || LootboxDetectUtil.IsPrivateInventory(__instance))
@@ -726,13 +614,6 @@ internal static class Patch_ServerBroadcast_OnRemoveAt
 {
     private static void Postfix(Inventory __instance, int position, Item removedItem, bool __result)
     {
-        var m = ModBehaviourF.Instance;
-        if (m == null || !m.networkStarted || !m.IsServer) return;
-        if (!__result || COOPManager.LootNet._serverApplyingLoot) return;
-        if (!LootboxDetectUtil.IsLootboxInventory(__instance) || LootboxDetectUtil.IsPrivateInventory(__instance)) return;
-
-        if (LootManager.Instance.Server_IsLootMuted(__instance)) return; // ★ 新增
-        COOPManager.LootNet.Server_SendLootboxState(null, __instance);
     }
 }
 
@@ -743,27 +624,10 @@ internal static class Patch_ServerBroadcast_OnAddAt
     // 死亡填充场景：在 AddAt 前给该容器加“静音窗口”，屏蔽本次及紧随其后的群发
     private static void Prefix(Inventory __instance)
     {
-        var m = ModBehaviourF.Instance;
-        if (m == null || !m.networkStarted || !m.IsServer) return;
-
-        // 仅在 AI 死亡 OnDead 流程里触发（你项目里已有这个上下文标记）
-        if (DeadLootSpawnContext.InOnDead == null) return;
-
-        if (!LootboxDetectUtil.IsLootboxInventory(__instance) || LootboxDetectUtil.IsPrivateInventory(__instance)) return;
-        LootManager.Instance.Server_MuteLoot(__instance, 1.0f); // 1秒静音足够覆盖整次填充
     }
 
     private static void Postfix(Inventory __instance, Item item, int atPosition, bool __result)
     {
-        var m = ModBehaviourF.Instance;
-        if (m == null || !m.networkStarted || !m.IsServer) return;
-        if (!__result || COOPManager.LootNet._serverApplyingLoot) return;
-        if (!LootboxDetectUtil.IsLootboxInventory(__instance) || LootboxDetectUtil.IsPrivateInventory(__instance)) return;
-
-        // ★ 新增：静音期内跳过群发（真正有人打开时仍会单播，应答不受影响）
-        if (LootManager.Instance.Server_IsLootMuted(__instance)) return;
-
-        COOPManager.LootNet.Server_SendLootboxState(null, __instance);
     }
 }
 
@@ -778,8 +642,7 @@ internal static class Patch_Inventory_AddAt_FlagUninspected_WhenApplyingLoot
     private static void ApplyUninspectedFlag(Inventory inv, Item item)
     {
         var mod = ModBehaviourF.Instance;
-        if (mod == null || !mod.networkStarted || mod.IsServer) return;
-
+        if (mod == null || !mod.networkStarted) return;
 
         if (!COOPManager.LootNet.ApplyingLootState) return;
 
@@ -812,7 +675,7 @@ internal static class Patch_Inventory_AddItem_FlagUninspected_WhenApplyingLoot
     private static void ApplyUninspectedFlag(Inventory inv, Item item)
     {
         var mod = ModBehaviourF.Instance;
-        if (mod == null || !mod.networkStarted || mod.IsServer) return;
+        if (mod == null || !mod.networkStarted) return;
 
         if (!COOPManager.LootNet.ApplyingLootState) return;
 
