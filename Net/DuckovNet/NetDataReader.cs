@@ -154,6 +154,18 @@ namespace DuckovNet
             _position += length;
             return result;
         }
+        
+        public void GetBytes(int length, byte[] buffer)
+        {
+            if (_position + length > _dataSize) throw new IndexOutOfRangeException();
+            Buffer.BlockCopy(_data, _position, buffer, 0, length);
+            _position += length;
+        }
+        
+        public void GetBytes(byte[] buffer, int length)
+        {
+            GetBytes(length, buffer);
+        }
 
         public byte[] GetBytesWithLength()
         {

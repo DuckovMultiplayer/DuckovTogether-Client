@@ -24,6 +24,9 @@ namespace DuckovNet
         public bool IsConnected => _isConnected;
         public int Latency { get; private set; }
         
+        private static readonly System.Diagnostics.Stopwatch _sw = System.Diagnostics.Stopwatch.StartNew();
+        private static long TickCount64 => _sw.ElapsedMilliseconds;
+        
         public event Action OnConnected;
         public event Action<string> OnDisconnected;
         public event Action<byte[], DeliveryMode> OnDataReceived;
@@ -69,8 +72,8 @@ namespace DuckovNet
                 
                 SendConnect();
                 
-                var startTime = Environment.TickCount64;
-                while (!_isConnected && Environment.TickCount64 - startTime < CONNECT_TIMEOUT_MS)
+                var startTime = TickCount64;
+                while (!_isConnected && TickCount64 - startTime < CONNECT_TIMEOUT_MS)
                 {
                     Thread.Sleep(10);
                 }
@@ -121,7 +124,7 @@ namespace DuckovNet
         
         public void SendPing()
         {
-            var data = BitConverter.GetBytes(Environment.TickCount64);
+            var data = BitConverter.GetBytes(TickCount64);
             SendRaw(MSG_PING, data);
         }
         
@@ -156,7 +159,7 @@ namespace DuckovNet
                     
                     if (!endpoint.Equals(_serverEndpoint)) continue;
                     
-                    _lastActivity = Environment.TickCount64;
+                    _lastActivity = TickCount64;
                     ProcessPacket(data);
                 }
                 catch (SocketException) { }
@@ -175,7 +178,7 @@ namespace DuckovNet
             {
                 case MSG_ACCEPT:
                     _isConnected = true;
-                    _lastActivity = Environment.TickCount64;
+                    _lastActivity = TickCount64;
                     OnConnected?.Invoke();
                     break;
                     
@@ -199,7 +202,7 @@ namespace DuckovNet
                     if (payload.Length >= 8)
                     {
                         var sendTime = BitConverter.ToInt64(payload, 0);
-                        Latency = (int)(Environment.TickCount64 - sendTime);
+                        Latency = (int)(TickCount64 - sendTime);
                     }
                     break;
                     
@@ -214,11 +217,11 @@ namespace DuckovNet
         
         private void UpdateLoop()
         {
-            var lastPing = Environment.TickCount64;
+            var lastPing = TickCount64;
             
             while (_running)
             {
-                var now = Environment.TickCount64;
+                var now = TickCount64;
                 
                 lock (_lock)
                 {

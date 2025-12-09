@@ -15,6 +15,7 @@ public class CoopNetClient : MonoBehaviour
     public KcpClient KcpClient { get; private set; }
     public NetPeer ServerPeer { get; private set; }
     public NetDataWriter Writer { get; private set; }
+    public NetManager NetManager { get; private set; } = new NetManager();
     
     public bool IsConnected => KcpClient?.IsConnected ?? false;
     public bool IsConnecting { get; private set; }
