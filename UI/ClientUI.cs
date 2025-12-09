@@ -444,7 +444,7 @@ public class ClientUI : MonoBehaviour
                     
                     if (reader.TryGetBool(out var hasLogo) && hasLogo)
                     {
-                        if (reader.TryGetInt(out var logoSize) && logoSize > 0 && logoSize <= 64 * 1024)
+                        if (reader.TryGetInt(out var logoSize) && logoSize > 0 && logoSize <= 1024 * 1024)
                         {
                             Server.LogoData = reader.GetBytesWithLength();
                         }
