@@ -506,14 +506,10 @@ public class ClientUI : MonoBehaviour
         var iconLE = iconContainer.AddComponent<LayoutElement>();
         iconLE.preferredWidth = 45;
         iconLE.preferredHeight = 45;
-        var iconBg = iconContainer.AddComponent<Image>();
-        iconBg.color = new Color(0.3f, 0.3f, 0.35f, 1f);
-        var iconText = CreateLabel("IconText", iconContainer.transform, "S", 20, FontStyles.Bold, UIColors.Text);
-        iconText.alignment = TextAlignmentOptions.Center;
-        var iconTextRect = iconText.GetComponent<RectTransform>();
-        iconTextRect.anchorMin = Vector2.zero;
-        iconTextRect.anchorMax = Vector2.one;
-        iconTextRect.sizeDelta = Vector2.zero;
+        var iconImage = iconContainer.AddComponent<Image>();
+        iconImage.color = new Color(0.3f, 0.3f, 0.35f, 1f);
+        
+        LoadServerIcon(server.Icon, iconImage, iconContainer.transform, server.Name);
         
         var infoContainer = new GameObject("Info");
         infoContainer.transform.SetParent(entry.transform, false);
@@ -547,6 +543,25 @@ public class ClientUI : MonoBehaviour
         if (ping < 50) return UIColors.Success;
         if (ping < 100) return UIColors.Warning;
         return UIColors.Error;
+    }
+    
+    private void LoadServerIcon(string iconConfig, Image targetImage, Transform iconContainer, string serverName)
+    {
+        var firstChar = serverName?.Length > 0 ? serverName[0].ToString().ToUpper() : "S";
+        var iconText = CreateLabel("IconText", iconContainer, firstChar, 18, FontStyles.Bold, UIColors.Text);
+        iconText.alignment = TextAlignmentOptions.Center;
+        var iconTextRect = iconText.GetComponent<RectTransform>();
+        iconTextRect.anchorMin = Vector2.zero;
+        iconTextRect.anchorMax = Vector2.one;
+        iconTextRect.sizeDelta = Vector2.zero;
+        
+        if (!string.IsNullOrEmpty(iconConfig) && iconConfig != "default")
+        {
+            if (ColorUtility.TryParseHtmlString(iconConfig, out var color))
+            {
+                targetImage.color = color;
+            }
+        }
     }
     
     private void UpdateServerEntryUI(SavedServer server)
