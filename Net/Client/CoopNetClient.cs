@@ -163,6 +163,7 @@ public class CoopNetClient : MonoBehaviour
             
             SendClientStatus();
             RequestFullSync();
+            RequestServerLogo();
         });
     }
     
@@ -237,6 +238,9 @@ public class CoopNetClient : MonoBehaviour
         {
             case 9:
                 ProcessJsonMessage(reader);
+                break;
+            case 111:
+                ProcessServerLogo(reader);
                 break;
             default:
                 OnMessageReceived?.Invoke(msgType.ToString(), reader);
@@ -472,6 +476,46 @@ public class CoopNetClient : MonoBehaviour
         Writer.Put(json);
         
         ServerPeer.Send(Writer, DeliveryMethod.ReliableOrdered);
+    }
+    
+    public void RequestServerLogo()
+    {
+        if (!IsConnected) return;
+        
+        Writer.Reset();
+        Writer.Put((byte)110);
+        ServerPeer.Send(Writer, DeliveryMethod.ReliableOrdered);
+        Debug.Log("[CoopNet] Requested server logo");
+    }
+    
+    public byte[] ServerLogoData { get; private set; }
+    public event Action<byte[]> OnServerLogoReceived;
+    
+    private void ProcessServerLogo(NetPacketReader reader)
+    {
+        try
+        {
+            var hasLogo = reader.GetBool();
+            if (hasLogo)
+            {
+                var logoSize = reader.GetInt();
+                if (logoSize > 0 && logoSize <= 2 * 1024 * 1024)
+                {
+                    ServerLogoData = reader.GetBytes(logoSize);
+                    Debug.Log($"[CoopNet] Received server logo: {logoSize} bytes");
+                    OnServerLogoReceived?.Invoke(ServerLogoData);
+                }
+            }
+            else
+            {
+                ServerLogoData = null;
+                Debug.Log("[CoopNet] Server has no logo");
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[CoopNet] Error processing server logo: {ex.Message}");
+        }
     }
     
     public void SendJson(object data)
