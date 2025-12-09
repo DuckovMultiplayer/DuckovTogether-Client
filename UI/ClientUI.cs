@@ -412,49 +412,75 @@ public class ClientUI : MonoBehaviour
         UpdateServerEntryUI(server);
     }
     
+    private class DiscoveryListener : LiteNetLib.INetEventListener
+    {
+        public SavedServer Server;
+        public bool Received;
+        public System.Diagnostics.Stopwatch Timer;
+        
+        public void OnNetworkReceiveUnconnected(System.Net.IPEndPoint remoteEndPoint, LiteNetLib.NetPacketReader reader, LiteNetLib.UnconnectedMessageType messageType)
+        {
+            try
+            {
+                var responseType = reader.GetString();
+                if (responseType == "DISCOVER_RESPONSE")
+                {
+                    Server.Name = reader.GetString();
+                    Server.PlayerCount = reader.GetInt();
+                    Server.MaxPlayers = reader.GetInt();
+                    Server.PluginCount = reader.TryGetInt(out var pluginCount) ? pluginCount : 0;
+                    Server.Icon = reader.TryGetString(out var icon) ? icon : "default";
+                    Server.Ping = (int)Timer.ElapsedMilliseconds;
+                    Server.IsOnline = true;
+                    Received = true;
+                }
+            }
+            catch { }
+        }
+        
+        public void OnPeerConnected(LiteNetLib.NetPeer peer) { }
+        public void OnPeerDisconnected(LiteNetLib.NetPeer peer, LiteNetLib.DisconnectInfo disconnectInfo) { }
+        public void OnNetworkError(System.Net.IPEndPoint endPoint, System.Net.Sockets.SocketError socketError) { }
+        public void OnNetworkReceive(LiteNetLib.NetPeer peer, LiteNetLib.NetPacketReader reader, byte channelNumber, LiteNetLib.DeliveryMethod deliveryMethod) { }
+        public void OnNetworkLatencyUpdate(LiteNetLib.NetPeer peer, int latency) { }
+        public void OnConnectionRequest(LiteNetLib.ConnectionRequest request) { }
+    }
+    
     private void CheckServerStatusAsync(SavedServer server)
     {
-        var startTime = System.Diagnostics.Stopwatch.StartNew();
-        System.Net.Sockets.UdpClient udp = null;
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        var listener = new DiscoveryListener { Server = server, Timer = timer };
+        LiteNetLib.NetManager netManager = null;
         
         try
         {
-            udp = new System.Net.Sockets.UdpClient();
-            udp.Client.ReceiveTimeout = 2000;
-            udp.Client.SendTimeout = 2000;
+            netManager = new LiteNetLib.NetManager(listener)
+            {
+                UnconnectedMessagesEnabled = true
+            };
+            
+            if (!netManager.Start()) return;
             
             var writer = new LiteNetLib.Utils.NetDataWriter();
             writer.Put("DISCOVER_REQUEST");
-            var data = writer.CopyData();
             
             var endpoint = new System.Net.IPEndPoint(System.Net.IPAddress.Parse(server.IP), server.Port);
-            udp.Send(data, data.Length, endpoint);
+            netManager.SendUnconnectedMessage(writer, endpoint);
             
-            var remoteEP = new System.Net.IPEndPoint(System.Net.IPAddress.Any, 0);
-            var responseData = udp.Receive(ref remoteEP);
-            
-            var reader = new LiteNetLib.Utils.NetDataReader(responseData);
-            var responseType = reader.GetString();
-            
-            if (responseType == "DISCOVER_RESPONSE")
+            var timeout = 2000;
+            while (timer.ElapsedMilliseconds < timeout && !listener.Received)
             {
-                server.Name = reader.GetString();
-                server.PlayerCount = reader.GetInt();
-                server.MaxPlayers = reader.GetInt();
-                server.PluginCount = reader.TryGetInt(out var pluginCount) ? pluginCount : 0;
-                server.Icon = reader.TryGetString(out var icon) ? icon : "default";
-                server.Ping = (int)startTime.ElapsedMilliseconds;
-                server.IsOnline = true;
+                netManager.PollEvents();
+                System.Threading.Thread.Sleep(10);
             }
         }
         catch
         {
             server.IsOnline = false;
-            server.Name = server.Key;
         }
         finally
         {
-            udp?.Close();
+            netManager?.Stop();
         }
     }
     
