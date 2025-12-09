@@ -1,59 +1,73 @@
-﻿using UnityEngine;
+using TMPro;
+using UnityEngine;
 using UnityEngine.UI;
 
-namespace EscapeFromDuckovCoopMod.Main.UI;
+namespace EscapeFromDuckovCoopMod.UI;
 
 public class VersionLabel : MonoBehaviour
 {
-    private static VersionLabel _instance;
+    public static VersionLabel Instance { get; private set; }
     
-    public static void Create()
+    private const string VERSION = "1.0.0";
+    private const string BUILD_TYPE = "Client";
+    
+    private Canvas _canvas;
+    private TMP_Text _versionText;
+
+    private void Awake()
     {
-        if (_instance != null)
+        if (Instance != null && Instance != this)
         {
-            Destroy(_instance.gameObject);
+            Destroy(gameObject);
+            return;
         }
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
         
-        var go = new GameObject("VersionLabel");
-        DontDestroyOnLoad(go);
-        
-        _instance = go.AddComponent<VersionLabel>();
-        _instance.Initialize();
+        CreateUI();
     }
-    
-    private void Initialize()
+
+    private void OnDestroy()
     {
-        var canvas = gameObject.AddComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 10000;
+        if (Instance == this) Instance = null;
+    }
+
+    private void CreateUI()
+    {
+        var canvasGO = new GameObject("VersionCanvas");
+        canvasGO.transform.SetParent(transform);
         
-        var canvasScaler = gameObject.AddComponent<CanvasScaler>();
-        canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        canvasScaler.referenceResolution = new Vector2(1920, 1080);
+        _canvas = canvasGO.AddComponent<Canvas>();
+        _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        _canvas.sortingOrder = 100;
         
-        gameObject.AddComponent<GraphicRaycaster>();
+        var scaler = canvasGO.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920, 1080);
         
-        var textGO = new GameObject("VersionText");
-        textGO.transform.SetParent(transform, false);
+        var labelGO = new GameObject("VersionText");
+        labelGO.transform.SetParent(canvasGO.transform, false);
         
-        var rectTransform = textGO.AddComponent<RectTransform>();
-        rectTransform.anchorMin = new Vector2(1, 1);
-        rectTransform.anchorMax = new Vector2(1, 1);
-        rectTransform.pivot = new Vector2(1, 1);
-        rectTransform.anchoredPosition = new Vector2(-15, -15);
-        rectTransform.sizeDelta = new Vector2(450, 30);
+        var rect = labelGO.AddComponent<RectTransform>();
+        rect.anchorMin = new Vector2(1, 0);
+        rect.anchorMax = new Vector2(1, 0);
+        rect.pivot = new Vector2(1, 0);
+        rect.anchoredPosition = new Vector2(-15, 10);
+        rect.sizeDelta = new Vector2(300, 30);
         
-        var text = textGO.AddComponent<Text>();
-        string versionString = $"逃离鸭科夫联机Mod v{BuildInfo.ModVersion} ({BuildInfo.CommitHash})";
-        text.text = versionString;
-        text.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-        text.fontSize = 13;
-        text.color = new Color(0.65f, 0.65f, 0.65f, 0.55f);
-        text.alignment = TextAnchor.UpperRight;
-        text.raycastTarget = false;
-        
-        var outline = textGO.AddComponent<Outline>();
-        outline.effectColor = new Color(0, 0, 0, 0.4f);
-        outline.effectDistance = new Vector2(1, -1);
+        _versionText = labelGO.AddComponent<TextMeshProUGUI>();
+        _versionText.text = $"Duckov Together {BUILD_TYPE} v{VERSION}";
+        _versionText.fontSize = 14;
+        _versionText.fontStyle = FontStyles.Normal;
+        _versionText.color = new Color(1f, 1f, 1f, 0.5f);
+        _versionText.alignment = TextAlignmentOptions.Right;
+    }
+
+    public void SetVersion(string version)
+    {
+        if (_versionText != null)
+        {
+            _versionText.text = $"Duckov Together {BUILD_TYPE} v{version}";
+        }
     }
 }

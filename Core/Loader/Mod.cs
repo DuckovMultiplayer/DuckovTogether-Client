@@ -203,9 +203,6 @@ public partial class ModBehaviourF : MonoBehaviour
         voiceManager.Init();
         DontDestroyOnLoad(voiceObj);
 
-        var voiceUIObj = new GameObject("VoiceOverlayUI");
-        voiceUIObj.AddComponent<Main.UI.VoiceOverlayUI>();
-        DontDestroyOnLoad(voiceUIObj);
 
         LoggerHelper.Log(LogLevel.None, "【测试】None 等级日志 - 无颜色");
         LoggerHelper.LogInfo("【测试】Info 等级日志 - 信息颜色");
@@ -282,57 +279,28 @@ public partial class ModBehaviourF : MonoBehaviour
             
             bool needsReinit = false;
             
-            if (MModUI.Instance != null)
+            if (UI.ClientUI.Instance != null)
             {
-                if (MModUI.Instance.Canvas == null)
-                {
-                    needsReinit = true;
-                }
-                else
-                {
-                    Debug.Log($"[ModBehaviourF] MModUI is fully initialized and ready!");
-                }
-                
-                if (needsReinit)
-                {
-                    Debug.Log("[ModBehaviourF] Calling MModUI.Instance.Init() now...");
-                    try
-                    {
-                        MModUI.Instance.Init();
-                        Debug.Log("[ModBehaviourF] MModUI.Init() completed successfully!");
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.LogError($"[ModBehaviourF] MModUI.Init() FAILED: {ex.Message}\n{ex.StackTrace}");
-                    }
-                }
+                Debug.Log("[ModBehaviourF] ClientUI is initialized and ready");
             }
             else if (!_modBehaviourCreationAttempted)
             {
                 _modBehaviourCreationAttempted = true;
-                Debug.LogWarning("[ModBehaviourF] MModUI.Instance is null! Main mod initialization may have been skipped.");
-                Debug.LogWarning("[ModBehaviourF] Attempting manual initialization...");
+                Debug.LogWarning("[ModBehaviourF] ClientUI.Instance is null, attempting manual initialization...");
                 
                 try
                 {
                     var modGO = GameObject.Find("[COOP_ModBehaviour]");
                     if (modGO == null)
                     {
-                        Debug.Log("[ModBehaviourF] Creating ModBehaviour GameObject (from Update)");
                         modGO = new GameObject("[COOP_ModBehaviour]");
                         DontDestroyOnLoad(modGO);
                         modGO.AddComponent<ModBehaviour>();
-                        Debug.Log("[ModBehaviourF] ModBehaviour created, OnEnable will be called automatically");
-                    }
-                    else
-                    {
-                        Debug.Log("[ModBehaviourF] ModBehaviour GameObject already exists but MModUI is still null");
-                        Debug.LogWarning("[ModBehaviourF] This suggests ModBehaviour.OnEnable() failed or didn't run");
                     }
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogError($"[ModBehaviourF] Manual initialization failed: {ex.Message}\n{ex.StackTrace}");
+                    Debug.LogError($"[ModBehaviourF] Manual initialization failed: {ex.Message}");
                 }
             }
         }
@@ -689,11 +657,8 @@ public partial class ModBehaviourF : MonoBehaviour
             }
 
             
-            Debug.Log("[MOD-Cleanup] 强制关闭同步UI...");
-            if (WaitingSynchronizationUI.Instance != null)
-            {
-                WaitingSynchronizationUI.Instance.ForceCloseIfVisible("场景卸载");
-            }
+            Debug.Log("[MOD-Cleanup] Closing sync UI...");
+            UI.SyncStatusUI.Instance?.Hide();
 
             
             if (scene.buildIndex > 0) 
@@ -716,30 +681,20 @@ public partial class ModBehaviourF : MonoBehaviour
 
     private void LevelManager_OnLevelInitialized()
     {
-        WaitingSynchronizationUI syncUI = null;
+        UI.SyncStatusUI syncUI = null;
         
         try
         {
             Debug.Log("[MOD] LevelManager_OnLevelInitialized START");
-            
-            Debug.Log("[MOD] LevelManager_OnLevelInitialized 开始，准备显示同步UI");
-            syncUI = WaitingSynchronizationUI.Instance;
+            syncUI = UI.SyncStatusUI.Instance;
             if (syncUI != null)
             {
-                Debug.Log("[MOD] 找到同步UI实例，开始显示");
-                syncUI.Show();
-                Debug.Log("[MOD] 同步UI Show完成，更新玩家列表");
-                syncUI.UpdatePlayerList();
-                Debug.Log("[MOD] 同步UI UpdatePlayerList完成");
-            }
-            else
-            {
-                Debug.LogWarning("[MOD] 同步UI实例为null！");
+                syncUI.Show("Synchronizing...");
             }
         }
         catch (Exception ex)
         {
-            Debug.LogError($"[MOD] LevelManager_OnLevelInitialized ERROR (stage 1): {ex.Message}\n{ex.StackTrace}");
+            Debug.LogError($"[MOD] LevelManager_OnLevelInitialized ERROR: {ex.Message}");
         }
 
         
@@ -769,12 +724,9 @@ public partial class ModBehaviourF : MonoBehaviour
 
         if (syncUI != null)
         {
-            Debug.Log("[MOD] 注册同步任务");
-            
-            syncUI.RegisterTask("weather", "环境同步");
-            syncUI.RegisterTask("player_health", "玩家状态同步");
-            syncUI.RegisterTask("ai_loadouts", "AI装备接收"); 
-            syncUI.RegisterTask("ai_names", "AI名称初始化");
+            syncUI.RegisterTask("weather", "Environment Sync");
+            syncUI.RegisterTask("player_health", "Player Status");
+            syncUI.RegisterTask("ai_names", "AI Initialization");
         }
 
         HealthM.Instance.Client_ReportSelfHealth_IfReadyOnce();
@@ -793,23 +745,16 @@ public partial class ModBehaviourF : MonoBehaviour
                 () =>
                 {
                     COOPManager.Weather.Client_RequestEnvSync();
-                    var ui = WaitingSynchronizationUI.Instance;
-                    if (ui != null)
-                        ui.CompleteTask("weather", "完成");
+                    UI.SyncStatusUI.Instance?.CompleteTask("weather");
                 },
                 1.0f,
                 "Weather_EnvSync"
             );
 
-            
             initManager.EnqueueDelayedTask(
                 () =>
                 {
-                
-
-                    var ui = WaitingSynchronizationUI.Instance;
-                    if (ui != null)
-                        ui.CompleteTask("ai_names", "完成");
+                    UI.SyncStatusUI.Instance?.CompleteTask("ai_names");
                 },
                 1.0f,
                 "AI_Names"

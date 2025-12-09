@@ -636,14 +636,7 @@ public static class SceneVoteMessage
                         }
                     }
                     
-                    LoggerHelper.Log($"[SceneVote] ✓ 已更新玩家信息缓存和参与者列表，共 {data.playerList.items.Length} 名玩家");
-                    
-                    
-                    if (MModUI.Instance != null)
-                    {
-                        MModUI.Instance.UpdatePlayerList();
-                    }
-                    
+                    LoggerHelper.Log($"[SceneVote] Player cache updated, {data.playerList.items.Length} players");
                     return;
                 }
                 

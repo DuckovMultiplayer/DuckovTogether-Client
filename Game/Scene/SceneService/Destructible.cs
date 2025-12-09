@@ -267,8 +267,6 @@ public class Destructible
         Debug.Log($"[Destructible] 扫描完成，共处理 {processed} 个物体，用时 {frameCount} 帧，发现 {_deadDestructibleIds.Count} 个已破坏物体");
 
         
-        var syncUI = WaitingSynchronizationUI.Instance;
-        if (syncUI != null) syncUI.CompleteTask("destructible", $"发现 {_deadDestructibleIds.Count} 个已破坏物体");
     }
 
     

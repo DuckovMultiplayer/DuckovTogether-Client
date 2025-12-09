@@ -8,15 +8,10 @@
 
 
 
-
-
-
-
-
-
 using EscapeFromDuckovCoopMod.Utils;
 using EscapeFromDuckovCoopMod.Utils.NetHelper;
 using EscapeFromDuckovCoopMod.Utils.Logger.Tools;
+using EscapeFromDuckovCoopMod.UI;
 
 namespace EscapeFromDuckovCoopMod;
 
@@ -84,8 +79,8 @@ public class ModBehaviour : Duckov.Modding.ModBehaviour
         Debug.Log("[Loader] LootManager added");
         go.AddComponent<SceneNet>();
         Debug.Log("[Loader] SceneNet added");
-        go.AddComponent<MModUI>();
-        Debug.Log("[Loader] MModUI added");
+        go.AddComponent<ClientUI>();
+        Debug.Log("[Loader] ClientUI added");
         Debug.Log("===== Loader: 消息消费者初始化完成 =====");
         
         Net.HybridNet.HybridNetIntegration.Initialize();
@@ -102,16 +97,18 @@ public class ModBehaviour : Duckov.Modding.ModBehaviour
         Debug.Log("[Loader] BackgroundTaskManager added");
         go.AddComponent<EscapeFromDuckovCoopMod.Jobs.JobSystemManager>(); 
         Debug.Log("[Loader] JobSystemManager added");
-        go.AddComponent<WaitingSynchronizationUI>(); 
-        Debug.Log("[Loader] WaitingSynchronizationUI added");
+        go.AddComponent<SyncStatusUI>(); 
+        Debug.Log("[Loader] SyncStatusUI added");
         go.AddComponent<GameObjectCacheManager>(); 
         Debug.Log("[Loader] GameObjectCacheManager added");
         go.AddComponent<Main.Teleport.TeleportManager>(); 
         Debug.Log("[Loader] TeleportManager added");
         go.AddComponent<Net.Relay.RelayServerManager>(); 
         Debug.Log("[Loader] RelayServerManager added");
-        go.AddComponent<OnlineLobbyUI>(); 
-        Debug.Log("[Loader] OnlineLobbyUI added");
+        go.AddComponent<VoiceIndicatorUI>(); 
+        Debug.Log("[Loader] VoiceIndicatorUI added");
+        go.AddComponent<VersionLabel>(); 
+        Debug.Log("[Loader] VersionLabel added");
         go.AddComponent<EscapeFromDuckovCoopMod.Utils.AsyncMessageQueue>(); 
         Debug.Log("[Loader] AsyncMessageQueue added");
         CoopTool.Init();
@@ -141,8 +138,8 @@ public class ModBehaviour : Duckov.Modding.ModBehaviour
         Debug.Log("[DeferredInit] SendLocalPlayerStatus.Init() called");
         SafeInit<Spectator>(s => s.Init());
         Debug.Log("[DeferredInit] Spectator.Init() called");
-        SafeInit<MModUI>(ui => ui.Init());
-        Debug.Log("[DeferredInit] MModUI.Init() called");
+        SafeInit<ClientUI>(ui => ui.Initialize());
+        Debug.Log("[DeferredInit] ClientUI.Initialize() called");
         SafeInit<AIRequest>(a => a.Init());
         Debug.Log("[DeferredInit] AIRequest.Init() called");
         SafeInit<Send_ClientStatus>(s => s.Init());

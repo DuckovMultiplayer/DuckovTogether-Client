@@ -120,12 +120,6 @@ public static class KickMessage
                             SteamLobbyManager.Instance.LeaveLobby();
                         }
                     }
-
-                    
-                    if (MModUI.Instance != null)
-                    {
-                        
-                    }
                 }
             }
         }
