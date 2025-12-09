@@ -487,11 +487,18 @@ public class ClientUI : MonoBehaviour
                     if (reader.TryGetInt(out var plugins)) server.PluginCount = plugins;
                     if (reader.TryGetString(out var icon)) server.Icon = icon;
                     
-                    if (reader.TryGetBool(out var hasLogo) && hasLogo)
+                    if (reader.TryGetBool(out var hasLogo))
                     {
-                        if (reader.TryGetInt(out var logoSize) && logoSize > 0 && logoSize <= 1024 * 1024)
+                        if (hasLogo)
                         {
-                            server.LogoData = reader.GetBytes(logoSize);
+                            if (reader.TryGetInt(out var logoSize) && logoSize > 0 && logoSize <= 1024 * 1024)
+                            {
+                                server.LogoData = reader.GetBytes(logoSize);
+                            }
+                        }
+                        else if (reader.TryGetInt(out var pendingLogoSize) && pendingLogoSize > 0)
+                        {
+                            RequestLogoChunks(udpClient, endpoint, server, pendingLogoSize);
                         }
                     }
                 }
@@ -505,6 +512,72 @@ public class ClientUI : MonoBehaviour
         finally
         {
             udpClient?.Close();
+        }
+    }
+    
+    private void RequestLogoChunks(System.Net.Sockets.UdpClient udpClient, System.Net.IPEndPoint endpoint, SavedServer server, int expectedSize)
+    {
+        const byte MSG_UNCONNECTED = 7;
+        
+        try
+        {
+            var writer = new DuckovNet.NetDataWriter();
+            writer.Put("LOGO_REQUEST");
+            var payload = writer.CopyData();
+            var packet = new byte[payload.Length + 1];
+            packet[0] = MSG_UNCONNECTED;
+            System.Buffer.BlockCopy(payload, 0, packet, 1, payload.Length);
+            udpClient.Send(packet, packet.Length, endpoint);
+            
+            var chunks = new Dictionary<int, byte[]>();
+            var totalChunks = 0;
+            var totalSize = 0;
+            var timeout = System.DateTime.Now.AddSeconds(5);
+            
+            while (System.DateTime.Now < timeout)
+            {
+                var remoteEp = new System.Net.IPEndPoint(System.Net.IPAddress.Any, 0);
+                var responseData = udpClient.Receive(ref remoteEp);
+                
+                if (responseData == null || responseData.Length < 2 || responseData[0] != MSG_UNCONNECTED)
+                    continue;
+                
+                var reader = new DuckovNet.NetDataReader(responseData, 1, responseData.Length - 1);
+                if (!reader.TryGetString(out var msgType) || msgType != "LOGO_RESPONSE")
+                    continue;
+                
+                if (!reader.TryGetInt(out totalSize)) continue;
+                if (!reader.TryGetInt(out var chunkIndex)) continue;
+                if (!reader.TryGetInt(out totalChunks)) continue;
+                if (!reader.TryGetInt(out var chunkLength)) continue;
+                
+                if (totalSize == 0) break;
+                
+                var chunkData = reader.GetBytes(chunkLength);
+                chunks[chunkIndex] = chunkData;
+                
+                if (chunks.Count >= totalChunks) break;
+            }
+            
+            if (chunks.Count == totalChunks && totalSize > 0)
+            {
+                var logoData = new byte[totalSize];
+                var offset = 0;
+                for (int i = 0; i < totalChunks; i++)
+                {
+                    if (chunks.TryGetValue(i, out var chunk))
+                    {
+                        System.Buffer.BlockCopy(chunk, 0, logoData, offset, chunk.Length);
+                        offset += chunk.Length;
+                    }
+                }
+                server.LogoData = logoData;
+                UnityEngine.Debug.Log($"[Discovery] Received logo in {totalChunks} chunks ({totalSize} bytes)");
+            }
+        }
+        catch (Exception ex)
+        {
+            UnityEngine.Debug.LogWarning($"[Discovery] Logo request failed: {ex.Message}");
         }
     }
     
