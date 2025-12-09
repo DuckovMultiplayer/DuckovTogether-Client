@@ -46,6 +46,8 @@ public class ClientUI : MonoBehaviour
         public string IP;
         public int Port;
         public string Name;
+        public string Description;
+        public string Protocol;
         public int Ping;
         public bool IsOnline;
         public bool IsChecking;
@@ -486,6 +488,8 @@ public class ClientUI : MonoBehaviour
                     if (reader.TryGetInt(out var max)) server.MaxPlayers = max;
                     if (reader.TryGetInt(out var plugins)) server.PluginCount = plugins;
                     if (reader.TryGetString(out var icon)) server.Icon = icon;
+                    if (reader.TryGetString(out var desc)) server.Description = desc;
+                    if (reader.TryGetString(out var proto)) server.Protocol = proto;
                     
                     if (reader.TryGetBool(out var hasLogo))
                     {
@@ -616,12 +620,15 @@ public class ClientUI : MonoBehaviour
         infoContainer.AddComponent<LayoutElement>().flexibleWidth = 1;
         
         CreateLabel("Name", infoContainer.transform, server.Name, 13, FontStyles.Bold, UIColors.Text);
-        CreateLabel("Address", infoContainer.transform, server.Key, 10, FontStyles.Normal, UIColors.TextSecondary);
+        var protoText = server.IsOnline && !string.IsNullOrEmpty(server.Protocol) ? $"{server.Key} | {server.Protocol}" : server.Key;
+        CreateLabel("Address", infoContainer.transform, protoText, 10, FontStyles.Normal, UIColors.TextSecondary);
         var detailText = server.IsOnline ? $"{server.PlayerCount}/{server.MaxPlayers} | {L("ui.server.plugins")}: {server.PluginCount}" : L("ui.status.offline");
         CreateLabel("Details", infoContainer.transform, detailText, 10, FontStyles.Normal, server.IsOnline ? UIColors.Primary : UIColors.Error);
         
         var pingLabel = CreateLabel("Ping", entry.transform, server.IsOnline && server.Ping >= 0 ? $"{server.Ping}ms" : "-", 11, FontStyles.Normal, GetPingColor(server.Ping));
         pingLabel.gameObject.AddComponent<LayoutElement>().preferredWidth = 40;
+        
+        var detailBtn = CreateButtonWithRef("DetailBtn", entry.transform, "i", UIColors.Primary, () => ShowServerDetails(server), 30, 32, 11);
         
         var joinBtn = CreateButtonWithRef("JoinBtn", entry.transform, L("ui.button.connect"), server.IsOnline ? UIColors.Success : UIColors.Secondary, () => OnConnectToServer(server), 60, 32, 11);
         joinBtn.interactable = server.IsOnline;
@@ -716,6 +723,64 @@ public class ClientUI : MonoBehaviour
             btnColors.normalColor = server.IsOnline ? UIColors.Success : UIColors.Secondary;
             joinBtn.colors = btnColors;
         }
+    }
+    
+    private GameObject _detailPanel;
+    
+    private void ShowServerDetails(SavedServer server)
+    {
+        if (_detailPanel != null) Destroy(_detailPanel);
+        
+        _detailPanel = new GameObject("ServerDetailPanel");
+        _detailPanel.transform.SetParent(_canvas.transform, false);
+        
+        var panelRect = _detailPanel.AddComponent<RectTransform>();
+        panelRect.anchorMin = new Vector2(0.5f, 0.5f);
+        panelRect.anchorMax = new Vector2(0.5f, 0.5f);
+        panelRect.sizeDelta = new Vector2(400, 350);
+        panelRect.anchoredPosition = Vector2.zero;
+        
+        var panelBg = _detailPanel.AddComponent<Image>();
+        panelBg.color = UIColors.PanelBg;
+        
+        var layout = _detailPanel.AddComponent<VerticalLayoutGroup>();
+        layout.padding = new RectOffset(15, 15, 15, 15);
+        layout.spacing = 8;
+        layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = false;
+        
+        var header = new GameObject("Header");
+        header.transform.SetParent(_detailPanel.transform, false);
+        var headerLayout = header.AddComponent<HorizontalLayoutGroup>();
+        headerLayout.childForceExpandWidth = false;
+        
+        CreateLabel("Title", header.transform, server.Name, 16, FontStyles.Bold, UIColors.Text);
+        var spacer = new GameObject("Spacer");
+        spacer.transform.SetParent(header.transform, false);
+        spacer.AddComponent<LayoutElement>().flexibleWidth = 1;
+        CreateButtonWithRef("Close", header.transform, "×", UIColors.Error, () => { if (_detailPanel != null) Destroy(_detailPanel); }, 30, 25, 14);
+        
+        CreateLabel("Protocol", _detailPanel.transform, $"Protocol: {server.Protocol ?? "Unknown"}", 12, FontStyles.Normal, UIColors.Primary);
+        CreateLabel("Address", _detailPanel.transform, $"Address: {server.Key}", 11, FontStyles.Normal, UIColors.TextSecondary);
+        CreateLabel("Status", _detailPanel.transform, server.IsOnline ? $"Online | {server.PlayerCount}/{server.MaxPlayers} Players | Ping: {server.Ping}ms" : "Offline", 11, FontStyles.Normal, server.IsOnline ? UIColors.Success : UIColors.Error);
+        CreateLabel("Plugins", _detailPanel.transform, $"Plugins: {server.PluginCount}", 11, FontStyles.Normal, UIColors.TextSecondary);
+        
+        CreateLabel("DescTitle", _detailPanel.transform, "Description:", 12, FontStyles.Bold, UIColors.Text);
+        var descText = string.IsNullOrEmpty(server.Description) ? "No description available." : server.Description;
+        CreateLabel("Desc", _detailPanel.transform, descText, 11, FontStyles.Normal, UIColors.TextSecondary);
+        
+        var btnRow = new GameObject("Buttons");
+        btnRow.transform.SetParent(_detailPanel.transform, false);
+        var btnLayout = btnRow.AddComponent<HorizontalLayoutGroup>();
+        btnLayout.spacing = 10;
+        btnLayout.childForceExpandWidth = true;
+        btnRow.AddComponent<LayoutElement>().preferredHeight = 35;
+        
+        var connectBtn = CreateButtonWithRef("Connect", btnRow.transform, L("ui.button.connect"), server.IsOnline ? UIColors.Success : UIColors.Secondary, () => { 
+            if (_detailPanel != null) Destroy(_detailPanel);
+            OnConnectToServer(server); 
+        }, 0, 35, 12);
+        connectBtn.interactable = server.IsOnline;
     }
     
     private void OnConnectToServer(SavedServer server)
