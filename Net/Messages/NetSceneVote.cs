@@ -16,7 +16,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using LiteNetLib;
+using DuckovNet;
 using UnityEngine;
 using EscapeFromDuckovCoopMod.Utils.Logger.Tools;
 

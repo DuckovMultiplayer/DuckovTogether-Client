@@ -70,14 +70,14 @@ public static class KickMessage
             Debug.LogWarning($"[KickMessage] 从数据库删除玩家失败: {steamIdStr}");
         }
 
-        
-        JsonMessage.BroadcastToAllClients(json, LiteNetLib.DeliveryMethod.ReliableOrdered);
+        // 
+        JsonMessage.BroadcastToAllClients(json, DuckovNet.DeliveryMethod.ReliableOrdered);
     }
 
-    
-    
-    
-    
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="json"></param>
     public static void Client_HandleKickMessage(string json)
     {
         try

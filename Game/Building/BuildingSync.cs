@@ -315,7 +315,7 @@ namespace EscapeFromDuckovCoopMod.Game.Building
         private void SendJsonMessage<T>(T msg)
         {
             var json = JsonUtility.ToJson(msg);
-            var writer = new LiteNetLib.Utils.NetDataWriter();
+            var writer = new DuckovNet.NetDataWriter();
             writer.Put((byte)9);
             writer.Put(json);
             ModBehaviourF.Instance?.SendRaw(writer);

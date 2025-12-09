@@ -14,7 +14,7 @@
 
 
 
-using LiteNetLib;
+using DuckovNet;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
@@ -136,10 +136,10 @@ public static class LootFullSyncMessage
         };
         
         var json = JsonUtility.ToJson(data);
-        var writer = new LiteNetLib.Utils.NetDataWriter();
+        var writer = new NetDataWriter();
         writer.Put((byte)9);
         writer.Put(json);
-        peer.Send(writer, LiteNetLib.DeliveryMethod.ReliableOrdered);
+        peer.Send(writer, DeliveryMethod.ReliableOrdered);
         
         Debug.Log($"[LootFullSync] Sent {lootBoxes.Count} loot boxes to peer {peer.EndPoint}");
     }
@@ -206,10 +206,10 @@ public static class LootFullSyncMessage
             };
             
             var json = JsonUtility.ToJson(data);
-            var writer = new LiteNetLib.Utils.NetDataWriter();
+            var writer = new NetDataWriter();
             writer.Put((byte)9);
             writer.Put(json);
-            peer.Send(writer, LiteNetLib.DeliveryMethod.ReliableOrdered);
+            peer.Send(writer, DeliveryMethod.ReliableOrdered);
             
             yield return new WaitForSeconds(0.1f);
         }

@@ -1,5 +1,4 @@
-﻿using LiteNetLib;
-using LiteNetLib.Utils;
+﻿using DuckovNet;
 using UnityEngine;
 using EscapeFromDuckovCoopMod.Utils.NetHelper;
 

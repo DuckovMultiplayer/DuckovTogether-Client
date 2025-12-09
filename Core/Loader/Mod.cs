@@ -426,7 +426,7 @@ public partial class ModBehaviourF : MonoBehaviour
                 {
                     ModBehaviourF.Instance.netManager.UpdateTime = 1;
                     SteamP2PLoader.Instance._isOptimized = true;
-                    Debug.Log("[SteamP2P扩展] ✓ LiteNetLib网络线程已优化 (1ms 更新周期)");
+                    Debug.Log("[SteamP2P扩展] ✓ 网络线程已优化 (1ms 更新周期)");
                 }
             }
         }

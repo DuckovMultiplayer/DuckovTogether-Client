@@ -1,4 +1,4 @@
-using LiteNetLib;
+using DuckovNet;
 
 namespace EscapeFromDuckovCoopMod;
 
@@ -58,7 +58,7 @@ public partial class ModBehaviourF
     public NetworkTransportMode TransportMode => NetworkTransportMode.Direct;
     public string _relayRoomId { get; set; } = "";
     
-    public void SendRaw(LiteNetLib.Utils.NetDataWriter writer)
+    public void SendRaw(NetDataWriter writer)
     {
         var client = Net.CoopNetClient.Instance;
         if (client == null || !client.IsConnected) return;

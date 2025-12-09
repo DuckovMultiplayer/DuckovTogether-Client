@@ -252,7 +252,7 @@ namespace EscapeFromDuckovCoopMod.Utils.NetHelper
         /// <summary>
         /// 【后台线程】将消息加入后台队列（异步发送）
         /// 线程安全，可在任意线程调用
-        /// ⚠️ 注意：LiteNetLib 的 Send 方法本身是线程安全的
+        /// ⚠️ 注意：DuckovNet 的 Send 方法本身是线程安全的
         /// </summary>
         public void EnqueueBackground(NetPeer peer, NetDataWriter writer, MessagePriority priority, DeliveryMethod deliveryMethod)
         {

@@ -1,4 +1,4 @@
-﻿using LiteNetLib;
+﻿using DuckovNet;
 using EscapeFromDuckovCoopMod.Main.AI;
 using UnityEngine;
 

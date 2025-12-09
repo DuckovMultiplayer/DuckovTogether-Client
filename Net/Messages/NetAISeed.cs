@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
-using LiteNetLib;
-using LiteNetLib.Utils;
+using DuckovNet;
 using UnityEngine;
 
 namespace EscapeFromDuckovCoopMod.Net;

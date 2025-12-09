@@ -1,4 +1,4 @@
-﻿using LiteNetLib;
+﻿using DuckovNet;
 using Newtonsoft.Json;
 
 namespace EscapeFromDuckovCoopMod;

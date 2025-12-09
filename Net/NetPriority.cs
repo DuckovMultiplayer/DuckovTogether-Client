@@ -14,7 +14,7 @@
 
 
 
-using LiteNetLib;
+using DuckovNet;
 
 namespace EscapeFromDuckovCoopMod.Net;
 

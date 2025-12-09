@@ -423,75 +423,31 @@ public class ClientUI : MonoBehaviour
         UpdateServerEntryUI(server);
     }
     
-    private class DiscoveryListener : LiteNetLib.INetEventListener
-    {
-        public SavedServer Server;
-        public bool Received;
-        public System.Diagnostics.Stopwatch Timer;
-        
-        public void OnNetworkReceiveUnconnected(System.Net.IPEndPoint remoteEndPoint, LiteNetLib.NetPacketReader reader, LiteNetLib.UnconnectedMessageType messageType)
-        {
-            try
-            {
-                var responseType = reader.GetString();
-                if (responseType == "DISCOVER_RESPONSE")
-                {
-                    Server.Name = reader.GetString();
-                    Server.PlayerCount = reader.GetInt();
-                    Server.MaxPlayers = reader.GetInt();
-                    Server.PluginCount = reader.TryGetInt(out var pluginCount) ? pluginCount : 0;
-                    Server.Icon = reader.TryGetString(out var icon) ? icon : "default";
-                    
-                    if (reader.TryGetBool(out var hasLogo) && hasLogo)
-                    {
-                        if (reader.TryGetInt(out var logoSize) && logoSize > 0 && logoSize <= 1024 * 1024)
-                        {
-                            Server.LogoData = reader.GetBytesWithLength();
-                        }
-                    }
-                    
-                    Server.Ping = (int)Timer.ElapsedMilliseconds;
-                    Server.IsOnline = true;
-                    Received = true;
-                }
-            }
-            catch { }
-        }
-        
-        public void OnPeerConnected(LiteNetLib.NetPeer peer) { }
-        public void OnPeerDisconnected(LiteNetLib.NetPeer peer, LiteNetLib.DisconnectInfo disconnectInfo) { }
-        public void OnNetworkError(System.Net.IPEndPoint endPoint, System.Net.Sockets.SocketError socketError) { }
-        public void OnNetworkReceive(LiteNetLib.NetPeer peer, LiteNetLib.NetPacketReader reader, byte channelNumber, LiteNetLib.DeliveryMethod deliveryMethod) { }
-        public void OnNetworkLatencyUpdate(LiteNetLib.NetPeer peer, int latency) { }
-        public void OnConnectionRequest(LiteNetLib.ConnectionRequest request) { }
-    }
-    
     private void CheckServerStatusAsync(SavedServer server)
     {
         var timer = System.Diagnostics.Stopwatch.StartNew();
-        var listener = new DiscoveryListener { Server = server, Timer = timer };
-        LiteNetLib.NetManager netManager = null;
+        System.Net.Sockets.UdpClient udpClient = null;
         
         try
         {
-            netManager = new LiteNetLib.NetManager(listener)
-            {
-                UnconnectedMessagesEnabled = true
-            };
-            
-            if (!netManager.Start()) return;
-            
-            var writer = new LiteNetLib.Utils.NetDataWriter();
-            writer.Put("DISCOVER_REQUEST");
+            udpClient = new System.Net.Sockets.UdpClient();
+            udpClient.Client.ReceiveTimeout = 2000;
             
             var endpoint = new System.Net.IPEndPoint(System.Net.IPAddress.Parse(server.IP), server.Port);
-            netManager.SendUnconnectedMessage(writer, endpoint);
+            var requestData = System.Text.Encoding.UTF8.GetBytes("DISCOVER_REQUEST");
+            udpClient.Send(requestData, requestData.Length, endpoint);
             
-            var timeout = 2000;
-            while (timer.ElapsedMilliseconds < timeout && !listener.Received)
+            var remoteEp = new System.Net.IPEndPoint(System.Net.IPAddress.Any, 0);
+            var responseData = udpClient.Receive(ref remoteEp);
+            
+            if (responseData != null && responseData.Length > 0)
             {
-                netManager.PollEvents();
-                System.Threading.Thread.Sleep(10);
+                var response = System.Text.Encoding.UTF8.GetString(responseData);
+                if (response.StartsWith("DISCOVER_RESPONSE"))
+                {
+                    server.Ping = (int)timer.ElapsedMilliseconds;
+                    server.IsOnline = true;
+                }
             }
         }
         catch
@@ -500,7 +456,7 @@ public class ClientUI : MonoBehaviour
         }
         finally
         {
-            netManager?.Stop();
+            udpClient?.Close();
         }
     }
     

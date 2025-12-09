@@ -1,5 +1,4 @@
-﻿using LiteNetLib;
-using LiteNetLib.Utils;
+﻿using DuckovNet;
 
 namespace EscapeFromDuckovCoopMod.Net.HybridNet;
 

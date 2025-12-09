@@ -2,22 +2,21 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using LiteNetLib;
-using LiteNetLib.Utils;
+using DuckovNet;
 using UnityEngine;
 using Newtonsoft.Json;
 
 namespace EscapeFromDuckovCoopMod.Net;
 
-public class CoopNetClient : MonoBehaviour, INetEventListener
+public class CoopNetClient : MonoBehaviour
 {
     public static CoopNetClient Instance { get; private set; }
     
-    public NetManager NetManager { get; private set; }
+    public KcpClient KcpClient { get; private set; }
     public NetPeer ServerPeer { get; private set; }
     public NetDataWriter Writer { get; private set; }
     
-    public bool IsConnected => ServerPeer != null && ServerPeer.ConnectionState == ConnectionState.Connected;
+    public bool IsConnected => KcpClient?.IsConnected ?? false;
     public bool IsConnecting { get; private set; }
     public string ConnectionStatus { get; private set; } = "";
     public string NetworkId { get; private set; } = "";
@@ -60,7 +59,6 @@ public class CoopNetClient : MonoBehaviour, INetEventListener
     
     private void Update()
     {
-        NetManager?.PollEvents();
         
         if (IsConnected)
         {
@@ -107,30 +105,27 @@ public class CoopNetClient : MonoBehaviour, INetEventListener
         
         try
         {
-            if (NetManager != null)
-            {
-                NetManager.Stop();
-            }
+            KcpClient?.Disconnect();
             
-            NetManager = new NetManager(this)
-            {
-                AutoRecycle = true,
-                EnableStatistics = true,
-                UpdateTime = 15,
-                DisconnectTimeout = 10000,
-                ReconnectDelay = 500,
-                MaxConnectAttempts = 5
-            };
+            KcpClient = new KcpClient();
+            KcpClient.OnConnected += OnKcpConnected;
+            KcpClient.OnDisconnected += OnKcpDisconnected;
+            KcpClient.OnDataReceived += OnKcpDataReceived;
             
-            if (!NetManager.Start())
+            System.Threading.ThreadPool.QueueUserWorkItem(_ =>
             {
-                IsConnecting = false;
-                ConnectionStatus = "Failed to start network";
-                OnConnectionFailed?.Invoke(ConnectionStatus);
-                return;
-            }
+                var connected = KcpClient.Connect(address, port, "DuckovTogether_v2");
+                if (!connected)
+                {
+                    UnityMainThreadDispatcher.Enqueue(() =>
+                    {
+                        IsConnecting = false;
+                        ConnectionStatus = "Connection failed";
+                        OnConnectionFailed?.Invoke(ConnectionStatus);
+                    });
+                }
+            });
             
-            NetManager.Connect(address, port, "DuckovTogether_v2");
             Debug.Log($"[CoopNet] Connecting to {address}:{port}");
         }
         catch (Exception ex)
@@ -142,19 +137,78 @@ public class CoopNetClient : MonoBehaviour, INetEventListener
         }
     }
     
+    private void OnKcpConnected()
+    {
+        UnityMainThreadDispatcher.Enqueue(() =>
+        {
+            ServerPeer = new NetPeer
+            {
+                Id = 0,
+                EndPoint = $"{ServerAddress}:{ServerPort}",
+                ConnectionState = ConnectionState.Connected,
+                SendAction = (data, method) =>
+                {
+                    var mode = method == DeliveryMethod.Unreliable ? DeliveryMode.Unreliable : DeliveryMode.Reliable;
+                    KcpClient?.Send(data, mode);
+                }
+            };
+            
+            IsConnecting = false;
+            _reconnectAttempts = 0;
+            ConnectionStatus = $"Connected to {ServerAddress}:{ServerPort}";
+            
+            Debug.Log($"[CoopNet] Connected to server");
+            OnConnected?.Invoke();
+            
+            SendClientStatus();
+            RequestFullSync();
+        });
+    }
+    
+    private void OnKcpDisconnected(string reason)
+    {
+        UnityMainThreadDispatcher.Enqueue(() =>
+        {
+            ConnectionStatus = $"Disconnected: {reason}";
+            ServerPeer = null;
+            IsConnecting = false;
+            
+            Debug.Log($"[CoopNet] Disconnected: {reason}");
+            OnDisconnected?.Invoke(reason);
+            
+            RemotePlayers.Clear();
+            RemoteAI.Clear();
+        });
+    }
+    
+    private void OnKcpDataReceived(byte[] data, DeliveryMode mode)
+    {
+        UnityMainThreadDispatcher.Enqueue(() =>
+        {
+            if (data.Length < 1) return;
+            
+            var reader = new NetPacketReader(data);
+            var msgType = reader.PeekByte();
+            
+            try
+            {
+                ProcessMessage(msgType, reader);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[CoopNet] Error processing message type {msgType}: {ex.Message}");
+            }
+        });
+    }
+    
     public void Disconnect()
     {
         _autoReconnect = false;
         _reconnectAttempts = 0;
         
-        if (ServerPeer != null)
-        {
-            NetManager?.DisconnectPeer(ServerPeer);
-            ServerPeer = null;
-        }
-        
-        NetManager?.Stop();
-        NetManager = null;
+        KcpClient?.Disconnect();
+        KcpClient = null;
+        ServerPeer = null;
         
         IsConnecting = false;
         ConnectionStatus = "Disconnected";
@@ -172,69 +226,6 @@ public class CoopNetClient : MonoBehaviour, INetEventListener
             _reconnectAttempts = 0;
             _reconnectTimer = 0f;
         }
-    }
-    
-    public void OnPeerConnected(NetPeer peer)
-    {
-        ServerPeer = peer;
-        IsConnecting = false;
-        _reconnectAttempts = 0;
-        ConnectionStatus = $"Connected to {peer.EndPoint}";
-        
-        Debug.Log($"[CoopNet] Connected to server: {peer.EndPoint}");
-        OnConnected?.Invoke();
-        
-        SendClientStatus();
-        RequestFullSync();
-    }
-    
-    public void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
-    {
-        var reason = disconnectInfo.Reason.ToString();
-        ConnectionStatus = $"Disconnected: {reason}";
-        ServerPeer = null;
-        IsConnecting = false;
-        
-        Debug.Log($"[CoopNet] Disconnected: {reason}");
-        OnDisconnected?.Invoke(reason);
-        
-        RemotePlayers.Clear();
-        RemoteAI.Clear();
-    }
-    
-    public void OnNetworkError(IPEndPoint endPoint, SocketError socketError)
-    {
-        Debug.LogWarning($"[CoopNet] Network error: {socketError} from {endPoint}");
-    }
-    
-    public void OnNetworkReceive(NetPeer peer, NetPacketReader reader, byte channelNumber, DeliveryMethod deliveryMethod)
-    {
-        if (reader.AvailableBytes < 1) return;
-        
-        var msgType = reader.PeekByte();
-        
-        try
-        {
-            ProcessMessage(msgType, reader);
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError($"[CoopNet] Error processing message type {msgType}: {ex.Message}");
-        }
-    }
-    
-    public void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType)
-    {
-    }
-    
-    public void OnNetworkLatencyUpdate(NetPeer peer, int latency)
-    {
-        LocalPlayer.Latency = latency;
-    }
-    
-    public void OnConnectionRequest(ConnectionRequest request)
-    {
-        request.Reject();
     }
     
     private void ProcessMessage(byte msgType, NetPacketReader reader)

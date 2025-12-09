@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using LiteNetLib;
+using DuckovNet;
 using UnityEngine;
 
 namespace EscapeFromDuckovCoopMod.Net.HybridNet;
@@ -113,7 +113,7 @@ public static class HybridNetCore
         }
     }
     
-    public static void HandleIncoming(LiteNetLib.Utils.NetDataReader reader, NetPeer fromPeer)
+    public static void HandleIncoming(NetDataReader reader, NetPeer fromPeer)
     {
         try
         {
