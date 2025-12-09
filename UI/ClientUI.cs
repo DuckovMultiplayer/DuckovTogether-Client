@@ -426,6 +426,7 @@ public class ClientUI : MonoBehaviour
     
     private void CheckServerStatusAsync(SavedServer server)
     {
+        const byte MSG_UNCONNECTED = 7;
         var timer = System.Diagnostics.Stopwatch.StartNew();
         System.Net.Sockets.UdpClient udpClient = null;
         
@@ -435,19 +436,39 @@ public class ClientUI : MonoBehaviour
             udpClient.Client.ReceiveTimeout = 2000;
             
             var endpoint = new System.Net.IPEndPoint(System.Net.IPAddress.Parse(server.IP), server.Port);
-            var requestData = System.Text.Encoding.UTF8.GetBytes("DISCOVER_REQUEST");
-            udpClient.Send(requestData, requestData.Length, endpoint);
+            
+            var writer = new DuckovNet.NetDataWriter();
+            writer.Put("DISCOVER_REQUEST");
+            var payload = writer.CopyData();
+            var packet = new byte[payload.Length + 1];
+            packet[0] = MSG_UNCONNECTED;
+            System.Buffer.BlockCopy(payload, 0, packet, 1, payload.Length);
+            udpClient.Send(packet, packet.Length, endpoint);
             
             var remoteEp = new System.Net.IPEndPoint(System.Net.IPAddress.Any, 0);
             var responseData = udpClient.Receive(ref remoteEp);
             
-            if (responseData != null && responseData.Length > 0)
+            if (responseData != null && responseData.Length > 1 && responseData[0] == MSG_UNCONNECTED)
             {
-                var response = System.Text.Encoding.UTF8.GetString(responseData);
-                if (response.StartsWith("DISCOVER_RESPONSE"))
+                var reader = new DuckovNet.NetDataReader(responseData, 1, responseData.Length - 1);
+                if (reader.TryGetString(out var response) && response == "DISCOVER_RESPONSE")
                 {
                     server.Ping = (int)timer.ElapsedMilliseconds;
                     server.IsOnline = true;
+                    
+                    if (reader.TryGetString(out var name)) server.Name = name;
+                    if (reader.TryGetInt(out var players)) server.PlayerCount = players;
+                    if (reader.TryGetInt(out var max)) server.MaxPlayers = max;
+                    if (reader.TryGetInt(out var plugins)) server.PluginCount = plugins;
+                    if (reader.TryGetString(out var icon)) server.Icon = icon;
+                    
+                    if (reader.TryGetBool(out var hasLogo) && hasLogo)
+                    {
+                        if (reader.TryGetInt(out var logoSize) && logoSize > 0 && logoSize <= 1024 * 1024)
+                        {
+                            server.LogoData = reader.GetBytes(logoSize);
+                        }
+                    }
                 }
             }
         }
