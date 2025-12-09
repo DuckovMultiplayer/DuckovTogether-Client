@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using EscapeFromDuckovCoopMod.Net;
 
 namespace EscapeFromDuckovCoopMod.UI;
 
@@ -47,6 +48,7 @@ public class ClientUI : MonoBehaviour
         public string Name;
         public int Ping;
         public bool IsOnline;
+        public bool IsChecking;
         public int PlayerCount;
         public int MaxPlayers;
         public int PluginCount;
@@ -84,6 +86,24 @@ public class ClientUI : MonoBehaviour
         
         UpdateInputFields();
         
+        if (CoopNetClient.Instance != null)
+        {
+            CoopNetClient.Instance.OnServerLogoReceived += OnServerLogoReceived;
+        }
+    }
+    
+    private void OnServerLogoReceived(byte[] logoData)
+    {
+        if (_connectedServerKey != null && _savedServers != null)
+        {
+            var server = _savedServers.Find(s => s.Key == _connectedServerKey);
+            if (server != null)
+            {
+                server.LogoData = logoData;
+                server.LogoSprite = null;
+                UpdateServerEntryUI(server);
+            }
+        }
     }
 
     private void Update()
@@ -404,14 +424,14 @@ public class ClientUI : MonoBehaviour
     
     private void CheckServerStatus(SavedServer server)
     {
+        if (server.IsChecking) return;
         StartCoroutine(CheckServerStatusCoroutine(server));
     }
     
     private System.Collections.IEnumerator CheckServerStatusCoroutine(SavedServer server)
     {
-        server.IsOnline = false;
-        server.Ping = -1;
-        UpdateServerEntryUI(server);
+        if (server.IsChecking) yield break;
+        server.IsChecking = true;
         
         var checkTask = new System.Threading.Tasks.Task(() => CheckServerStatusAsync(server));
         checkTask.Start();
@@ -421,6 +441,7 @@ public class ClientUI : MonoBehaviour
             yield return null;
         }
         
+        server.IsChecking = false;
         UpdateServerEntryUI(server);
     }
     
@@ -447,14 +468,18 @@ public class ClientUI : MonoBehaviour
             
             var remoteEp = new System.Net.IPEndPoint(System.Net.IPAddress.Any, 0);
             var responseData = udpClient.Receive(ref remoteEp);
+            UnityEngine.Debug.Log($"[Discovery] Received {responseData?.Length ?? 0} bytes from {remoteEp}, first byte: {(responseData?.Length > 0 ? responseData[0] : -1)}");
             
             if (responseData != null && responseData.Length > 1 && responseData[0] == MSG_UNCONNECTED)
             {
                 var reader = new DuckovNet.NetDataReader(responseData, 1, responseData.Length - 1);
-                if (reader.TryGetString(out var response) && response == "DISCOVER_RESPONSE")
+                var gotStr = reader.TryGetString(out var response);
+                UnityEngine.Debug.Log($"[Discovery] TryGetString: {gotStr}, response: '{response}'");
+                if (gotStr && response == "DISCOVER_RESPONSE")
                 {
                     server.Ping = (int)timer.ElapsedMilliseconds;
                     server.IsOnline = true;
+                    UnityEngine.Debug.Log($"[Discovery] Server {server.IP}:{server.Port} is ONLINE!");
                     
                     if (reader.TryGetString(out var name)) server.Name = name;
                     if (reader.TryGetInt(out var players)) server.PlayerCount = players;
@@ -472,9 +497,10 @@ public class ClientUI : MonoBehaviour
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
             server.IsOnline = false;
+            UnityEngine.Debug.LogWarning($"[Discovery] Failed for {server.IP}:{server.Port} - {ex.Message}");
         }
         finally
         {
@@ -564,7 +590,12 @@ public class ClientUI : MonoBehaviour
     
     private void UpdateServerEntryUI(SavedServer server)
     {
-        if (!_serverEntries.TryGetValue(server.Key, out var entry)) return;
+        UnityEngine.Debug.Log($"[UpdateUI] Server {server.Key} IsOnline={server.IsOnline} Ping={server.Ping}");
+        if (!_serverEntries.TryGetValue(server.Key, out var entry)) 
+        {
+            UnityEngine.Debug.LogWarning($"[UpdateUI] Entry not found for {server.Key}");
+            return;
+        }
         
         var nameLabel = entry.transform.Find("Info/Name")?.GetComponent<TMP_Text>();
         if (nameLabel != null) nameLabel.text = server.Name;
