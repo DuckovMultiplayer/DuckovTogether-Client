@@ -47,6 +47,10 @@ public class ClientUI : MonoBehaviour
         public string Name;
         public int Ping;
         public bool IsOnline;
+        public int PlayerCount;
+        public int MaxPlayers;
+        public int PluginCount;
+        public string Icon;
         public string Key => $"{IP}:{Port}";
     }
 
@@ -396,11 +400,62 @@ public class ClientUI : MonoBehaviour
         server.IsOnline = false;
         server.Ping = -1;
         UpdateServerEntryUI(server);
-        yield return null;
-        server.IsOnline = true;
-        server.Name = $"{L("ui.server.name")}: {server.IP}";
-        server.Ping = 0;
+        
+        var checkTask = new System.Threading.Tasks.Task(() => CheckServerStatusAsync(server));
+        checkTask.Start();
+        
+        while (!checkTask.IsCompleted)
+        {
+            yield return null;
+        }
+        
         UpdateServerEntryUI(server);
+    }
+    
+    private void CheckServerStatusAsync(SavedServer server)
+    {
+        var startTime = System.Diagnostics.Stopwatch.StartNew();
+        System.Net.Sockets.UdpClient udp = null;
+        
+        try
+        {
+            udp = new System.Net.Sockets.UdpClient();
+            udp.Client.ReceiveTimeout = 2000;
+            udp.Client.SendTimeout = 2000;
+            
+            var writer = new LiteNetLib.Utils.NetDataWriter();
+            writer.Put("DISCOVER_REQUEST");
+            var data = writer.CopyData();
+            
+            var endpoint = new System.Net.IPEndPoint(System.Net.IPAddress.Parse(server.IP), server.Port);
+            udp.Send(data, data.Length, endpoint);
+            
+            var remoteEP = new System.Net.IPEndPoint(System.Net.IPAddress.Any, 0);
+            var responseData = udp.Receive(ref remoteEP);
+            
+            var reader = new LiteNetLib.Utils.NetDataReader(responseData);
+            var responseType = reader.GetString();
+            
+            if (responseType == "DISCOVER_RESPONSE")
+            {
+                server.Name = reader.GetString();
+                server.PlayerCount = reader.GetInt();
+                server.MaxPlayers = reader.GetInt();
+                server.PluginCount = reader.TryGetInt(out var pluginCount) ? pluginCount : 0;
+                server.Icon = reader.TryGetString(out var icon) ? icon : "default";
+                server.Ping = (int)startTime.ElapsedMilliseconds;
+                server.IsOnline = true;
+            }
+        }
+        catch
+        {
+            server.IsOnline = false;
+            server.Name = server.Key;
+        }
+        finally
+        {
+            udp?.Close();
+        }
     }
     
     private void CreateServerEntry(SavedServer server)
@@ -409,38 +464,63 @@ public class ClientUI : MonoBehaviour
         entry.transform.SetParent(_serverListContent, false);
         
         var entryLayout = entry.AddComponent<LayoutElement>();
-        entryLayout.preferredHeight = 60;
+        entryLayout.preferredHeight = 65;
         
         var bg = entry.AddComponent<Image>();
         bg.color = UIColors.CardBg;
         
         var layout = entry.AddComponent<HorizontalLayoutGroup>();
-        layout.padding = new RectOffset(12, 12, 8, 8);
-        layout.spacing = 10;
+        layout.padding = new RectOffset(10, 10, 6, 6);
+        layout.spacing = 8;
         layout.childAlignment = TextAnchor.MiddleLeft;
         layout.childForceExpandWidth = false;
+        
+        var iconContainer = new GameObject("Icon");
+        iconContainer.transform.SetParent(entry.transform, false);
+        var iconLE = iconContainer.AddComponent<LayoutElement>();
+        iconLE.preferredWidth = 45;
+        iconLE.preferredHeight = 45;
+        var iconBg = iconContainer.AddComponent<Image>();
+        iconBg.color = new Color(0.3f, 0.3f, 0.35f, 1f);
+        var iconText = CreateLabel("IconText", iconContainer.transform, "S", 20, FontStyles.Bold, UIColors.Text);
+        iconText.alignment = TextAlignmentOptions.Center;
+        var iconTextRect = iconText.GetComponent<RectTransform>();
+        iconTextRect.anchorMin = Vector2.zero;
+        iconTextRect.anchorMax = Vector2.one;
+        iconTextRect.sizeDelta = Vector2.zero;
         
         var infoContainer = new GameObject("Info");
         infoContainer.transform.SetParent(entry.transform, false);
         var infoLayout = infoContainer.AddComponent<VerticalLayoutGroup>();
-        infoLayout.spacing = 2;
+        infoLayout.spacing = 1;
         infoLayout.childForceExpandHeight = false;
         infoContainer.AddComponent<LayoutElement>().flexibleWidth = 1;
         
         CreateLabel("Name", infoContainer.transform, server.Name, 13, FontStyles.Bold, UIColors.Text);
-        CreateLabel("Address", infoContainer.transform, server.Key, 11, FontStyles.Normal, UIColors.TextSecondary);
+        CreateLabel("Address", infoContainer.transform, server.Key, 10, FontStyles.Normal, UIColors.TextSecondary);
+        var detailText = server.IsOnline ? $"{server.PlayerCount}/{server.MaxPlayers} | {L("ui.server.plugins")}: {server.PluginCount}" : L("ui.status.offline");
+        CreateLabel("Details", infoContainer.transform, detailText, 10, FontStyles.Normal, server.IsOnline ? UIColors.Primary : UIColors.Error);
         
-        var statusLabel = CreateLabel("Status", entry.transform, server.IsOnline ? L("ui.status.online") : L("ui.status.offline"), 12, FontStyles.Normal, server.IsOnline ? UIColors.Success : UIColors.Error);
-        statusLabel.gameObject.AddComponent<LayoutElement>().preferredWidth = 50;
+        var pingLabel = CreateLabel("Ping", entry.transform, server.IsOnline && server.Ping >= 0 ? $"{server.Ping}ms" : "-", 11, FontStyles.Normal, GetPingColor(server.Ping));
+        pingLabel.gameObject.AddComponent<LayoutElement>().preferredWidth = 40;
         
-        var joinBtn = CreateButtonWithRef("JoinBtn", entry.transform, L("ui.button.connect"), UIColors.Success, () => OnConnectToServer(server), 70, 35, 12);
+        var joinBtn = CreateButtonWithRef("JoinBtn", entry.transform, L("ui.button.connect"), server.IsOnline ? UIColors.Success : UIColors.Secondary, () => OnConnectToServer(server), 60, 32, 11);
+        joinBtn.interactable = server.IsOnline;
         
-        var deleteBtn = CreateButtonWithRef("DeleteBtn", entry.transform, "×", UIColors.Error, () => OnDeleteServer(server), 35, 35, 14);
+        var deleteBtn = CreateButtonWithRef("DeleteBtn", entry.transform, "×", UIColors.Error, () => OnDeleteServer(server), 30, 32, 13);
         
         _serverEntries[server.Key] = entry;
         
         var emptyHint = _serverListContent.Find("EmptyHint");
         if (emptyHint != null) emptyHint.gameObject.SetActive(false);
+    }
+    
+    private Color GetPingColor(int ping)
+    {
+        if (ping < 0) return UIColors.TextSecondary;
+        if (ping < 50) return UIColors.Success;
+        if (ping < 100) return UIColors.Warning;
+        return UIColors.Error;
     }
     
     private void UpdateServerEntryUI(SavedServer server)
@@ -450,11 +530,27 @@ public class ClientUI : MonoBehaviour
         var nameLabel = entry.transform.Find("Info/Name")?.GetComponent<TMP_Text>();
         if (nameLabel != null) nameLabel.text = server.Name;
         
-        var statusLabel = entry.transform.Find("Status")?.GetComponent<TMP_Text>();
-        if (statusLabel != null)
+        var detailsLabel = entry.transform.Find("Info/Details")?.GetComponent<TMP_Text>();
+        if (detailsLabel != null)
         {
-            statusLabel.text = server.IsOnline ? L("ui.status.online") : L("ui.status.offline");
-            statusLabel.color = server.IsOnline ? UIColors.Success : UIColors.Error;
+            detailsLabel.text = server.IsOnline ? $"{server.PlayerCount}/{server.MaxPlayers} | {L("ui.server.plugins")}: {server.PluginCount}" : L("ui.status.offline");
+            detailsLabel.color = server.IsOnline ? UIColors.Primary : UIColors.Error;
+        }
+        
+        var pingLabel = entry.transform.Find("Ping")?.GetComponent<TMP_Text>();
+        if (pingLabel != null)
+        {
+            pingLabel.text = server.IsOnline && server.Ping >= 0 ? $"{server.Ping}ms" : "-";
+            pingLabel.color = GetPingColor(server.Ping);
+        }
+        
+        var joinBtn = entry.transform.Find("JoinBtn")?.GetComponent<Button>();
+        if (joinBtn != null)
+        {
+            joinBtn.interactable = server.IsOnline;
+            var btnColors = joinBtn.colors;
+            btnColors.normalColor = server.IsOnline ? UIColors.Success : UIColors.Secondary;
+            joinBtn.colors = btnColors;
         }
     }
     
