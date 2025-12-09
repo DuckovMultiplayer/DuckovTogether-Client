@@ -26,15 +26,29 @@ public class ClientUI : MonoBehaviour
     
     private readonly Dictionary<string, GameObject> _serverEntries = new();
     private readonly Dictionary<string, GameObject> _playerEntries = new();
+    private readonly List<SavedServer> _savedServers = new();
     
     public bool IsVisible { get; private set; } = true;
     public KeyCode ToggleKey { get; set; } = KeyCode.F1;
     
     private ModBehaviourF Service => ModBehaviourF.Instance;
-    private bool IsConnected => Service?.networkStarted ?? false;
+    private Net.CoopNetClient Client => Net.CoopNetClient.Instance;
+    private bool IsConnected => Client?.IsConnected ?? false;
     
     private string _serverIP = "127.0.0.1";
     private string _serverPort = "9050";
+    private string _connectedServerKey = null;
+    
+    [Serializable]
+    public class SavedServer
+    {
+        public string IP;
+        public int Port;
+        public string Name;
+        public int Ping;
+        public bool IsOnline;
+        public string Key => $"{IP}:{Port}";
+    }
 
     private void Awake()
     {
@@ -240,14 +254,14 @@ public class ClientUI : MonoBehaviour
 
     private void CreateConnectCard(Transform parent)
     {
-        var card = CreateCard("ConnectCard", parent, 195);
+        var card = CreateCard("ConnectCard", parent, 165);
         var layout = card.AddComponent<VerticalLayoutGroup>();
         layout.padding = new RectOffset(15, 15, 12, 12);
         layout.spacing = 8;
         layout.childForceExpandWidth = true;
         layout.childForceExpandHeight = false;
         
-        CreateLabel("Title", card.transform, L("ui.connect.title"), 15, FontStyles.Bold, UIColors.Text);
+        CreateLabel("Title", card.transform, L("ui.addServer.title"), 15, FontStyles.Bold, UIColors.Text);
         
         var ipRow = CreateInputRow(card.transform, L("ui.connect.ip"), _serverIP, out _ipInput, 75);
         _ipInput.onValueChanged.AddListener(v => _serverIP = v);
@@ -261,7 +275,7 @@ public class ClientUI : MonoBehaviour
         buttonLayout.spacing = 10;
         buttonLayout.childForceExpandWidth = true;
         
-        _connectBtn = CreateButtonWithRef("ConnectBtn", buttonRow.transform, L("ui.button.connect"), UIColors.Success, OnConnectClick, -1, 38, 14);
+        CreateButton("AddServerBtn", buttonRow.transform, L("ui.button.addServer"), UIColors.Primary, OnAddServerClick, -1, 38, 14);
         _disconnectBtn = CreateButtonWithRef("DisconnectBtn", buttonRow.transform, L("ui.button.disconnect"), UIColors.Error, OnDisconnectClick, -1, 38, 14);
     }
 
@@ -322,10 +336,10 @@ public class ClientUI : MonoBehaviour
 
     private void OnRefreshClick()
     {
-        SetStatus(L("ui.status.refreshing"), UIColors.Warning);
+        RefreshAllServers();
     }
 
-    private void OnConnectClick()
+    private void OnAddServerClick()
     {
         if (string.IsNullOrEmpty(_serverIP) || string.IsNullOrEmpty(_serverPort))
         {
@@ -339,18 +353,145 @@ public class ClientUI : MonoBehaviour
             return;
         }
         
-        if (Service == null)
+        var key = $"{_serverIP}:{port}";
+        if (_savedServers.Exists(s => s.Key == key))
+        {
+            SetStatus(L("ui.error.serverExists"), UIColors.Warning);
+            return;
+        }
+        
+        var server = new SavedServer
+        {
+            IP = _serverIP,
+            Port = port,
+            Name = key,
+            IsOnline = false,
+            Ping = -1
+        };
+        
+        _savedServers.Add(server);
+        CreateServerEntry(server);
+        UpdateServerCount();
+        SetStatus(L("ui.status.serverAdded"), UIColors.Success);
+        
+        CheckServerStatus(server);
+    }
+    
+    private void RefreshAllServers()
+    {
+        SetStatus(L("ui.status.refreshing"), UIColors.Warning);
+        foreach (var server in _savedServers)
+        {
+            CheckServerStatus(server);
+        }
+    }
+    
+    private void CheckServerStatus(SavedServer server)
+    {
+        StartCoroutine(CheckServerStatusCoroutine(server));
+    }
+    
+    private System.Collections.IEnumerator CheckServerStatusCoroutine(SavedServer server)
+    {
+        server.IsOnline = false;
+        server.Ping = -1;
+        UpdateServerEntryUI(server);
+        yield return null;
+        server.IsOnline = true;
+        server.Name = $"{L("ui.server.name")}: {server.IP}";
+        server.Ping = 0;
+        UpdateServerEntryUI(server);
+    }
+    
+    private void CreateServerEntry(SavedServer server)
+    {
+        var entry = new GameObject($"Server_{server.Key}");
+        entry.transform.SetParent(_serverListContent, false);
+        
+        var entryLayout = entry.AddComponent<LayoutElement>();
+        entryLayout.preferredHeight = 60;
+        
+        var bg = entry.AddComponent<Image>();
+        bg.color = UIColors.CardBg;
+        
+        var layout = entry.AddComponent<HorizontalLayoutGroup>();
+        layout.padding = new RectOffset(12, 12, 8, 8);
+        layout.spacing = 10;
+        layout.childAlignment = TextAnchor.MiddleLeft;
+        layout.childForceExpandWidth = false;
+        
+        var infoContainer = new GameObject("Info");
+        infoContainer.transform.SetParent(entry.transform, false);
+        var infoLayout = infoContainer.AddComponent<VerticalLayoutGroup>();
+        infoLayout.spacing = 2;
+        infoLayout.childForceExpandHeight = false;
+        infoContainer.AddComponent<LayoutElement>().flexibleWidth = 1;
+        
+        CreateLabel("Name", infoContainer.transform, server.Name, 13, FontStyles.Bold, UIColors.Text);
+        CreateLabel("Address", infoContainer.transform, server.Key, 11, FontStyles.Normal, UIColors.TextSecondary);
+        
+        var statusLabel = CreateLabel("Status", entry.transform, server.IsOnline ? L("ui.status.online") : L("ui.status.offline"), 12, FontStyles.Normal, server.IsOnline ? UIColors.Success : UIColors.Error);
+        statusLabel.gameObject.AddComponent<LayoutElement>().preferredWidth = 50;
+        
+        var joinBtn = CreateButtonWithRef("JoinBtn", entry.transform, L("ui.button.connect"), UIColors.Success, () => OnConnectToServer(server), 70, 35, 12);
+        
+        var deleteBtn = CreateButtonWithRef("DeleteBtn", entry.transform, "×", UIColors.Error, () => OnDeleteServer(server), 35, 35, 14);
+        
+        _serverEntries[server.Key] = entry;
+        
+        var emptyHint = _serverListContent.Find("EmptyHint");
+        if (emptyHint != null) emptyHint.gameObject.SetActive(false);
+    }
+    
+    private void UpdateServerEntryUI(SavedServer server)
+    {
+        if (!_serverEntries.TryGetValue(server.Key, out var entry)) return;
+        
+        var nameLabel = entry.transform.Find("Info/Name")?.GetComponent<TMP_Text>();
+        if (nameLabel != null) nameLabel.text = server.Name;
+        
+        var statusLabel = entry.transform.Find("Status")?.GetComponent<TMP_Text>();
+        if (statusLabel != null)
+        {
+            statusLabel.text = server.IsOnline ? L("ui.status.online") : L("ui.status.offline");
+            statusLabel.color = server.IsOnline ? UIColors.Success : UIColors.Error;
+        }
+    }
+    
+    private void OnConnectToServer(SavedServer server)
+    {
+        if (Client == null)
         {
             SetStatus(L("ui.error.serviceNotReady"), UIColors.Error);
             return;
         }
         
-        Service.manualIP = _serverIP;
-        Service.manualPort = _serverPort;
-        Service.port = port;
-        Service.ConnectToHost(_serverIP, port);
-        
+        _connectedServerKey = server.Key;
+        Client.Connect(server.IP, server.Port);
         SetStatus(L("ui.status.connecting"), UIColors.Warning);
+    }
+    
+    private void OnDeleteServer(SavedServer server)
+    {
+        _savedServers.Remove(server);
+        if (_serverEntries.TryGetValue(server.Key, out var entry))
+        {
+            Destroy(entry);
+            _serverEntries.Remove(server.Key);
+        }
+        UpdateServerCount();
+        
+        if (_savedServers.Count == 0)
+        {
+            var emptyHint = _serverListContent.Find("EmptyHint");
+            if (emptyHint != null) emptyHint.gameObject.SetActive(true);
+        }
+    }
+    
+    private void UpdateServerCount()
+    {
+        if (_roomCountText != null)
+            _roomCountText.text = L("ui.serverList.count", _savedServers.Count);
     }
 
     private void OnDisconnectClick()
