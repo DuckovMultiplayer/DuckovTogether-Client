@@ -243,9 +243,81 @@ namespace EscapeFromDuckovCoopMod
         
         private static void LoadFallbackTranslations()
         {
-            
-            
             currentTranslations.Clear();
+            
+            if (currentLanguageCode == "zh-CN")
+            {
+                LoadChineseFallback();
+            }
+            else
+            {
+                LoadEnglishFallback();
+            }
+        }
+        
+        private static void LoadChineseFallback()
+        {
+            currentTranslations["ui.window.title"] = "多人联机控制面板";
+            currentTranslations["ui.window.playerStatus"] = "玩家状态";
+            currentTranslations["ui.mode.current"] = "当前模式";
+            currentTranslations["ui.mode.server"] = "服务器";
+            currentTranslations["ui.mode.client"] = "客户端";
+            currentTranslations["ui.hostList.title"] = "在线房间";
+            currentTranslations["ui.hostList.empty"] = "(暂无房间)";
+            currentTranslations["ui.hostList.connect"] = "连接";
+            currentTranslations["ui.manualConnect.title"] = "手动连接";
+            currentTranslations["ui.manualConnect.ip"] = "IP地址";
+            currentTranslations["ui.manualConnect.port"] = "端口";
+            currentTranslations["ui.manualConnect.button"] = "连接";
+            currentTranslations["ui.manualConnect.portError"] = "端口格式错误";
+            currentTranslations["ui.status.label"] = "状态:";
+            currentTranslations["ui.status.notConnected"] = "未连接";
+            currentTranslations["ui.status.connecting"] = "连接中...";
+            currentTranslations["ui.status.connected"] = "已连接";
+            currentTranslations["ui.server.connections"] = "当前连接数:";
+            currentTranslations["ui.playerStatus.toggle"] = "显示玩家状态窗口 (快捷键: {0})";
+            currentTranslations["ui.playerStatus.id"] = "ID:";
+            currentTranslations["ui.playerStatus.name"] = "名称:";
+            currentTranslations["ui.playerStatus.latency"] = "延迟:";
+            currentTranslations["ui.debug.printLootBoxes"] = "[调试] 打印本地图所有战利品箱";
+            currentTranslations["ui.steam.refresh"] = "刷新列表";
+            currentTranslations["ui.transport.label"] = "传输模式";
+            currentTranslations["ui.transport.mode.direct"] = "在线大厅";
+            currentTranslations["ui.transport.mode.steam"] = "Steam P2P";
+            currentTranslations["ui.hint.toggleUI"] = "{0} 显示/隐藏";
+            currentTranslations["ui.hint.pressKey"] = "按 {0} 切换界面";
+            currentTranslations["ui.serverList.title"] = "服务器列表";
+            currentTranslations["ui.serverList.count"] = "在线房间: {0}";
+            currentTranslations["ui.serverList.host"] = "房主";
+            currentTranslations["ui.connect.title"] = "连接服务器";
+            currentTranslations["ui.connect.ip"] = "IP地址";
+            currentTranslations["ui.connect.port"] = "端口";
+            currentTranslations["ui.button.refresh"] = "刷新";
+            currentTranslations["ui.button.connect"] = "连接";
+            currentTranslations["ui.button.disconnect"] = "断开";
+            currentTranslations["ui.button.join"] = "加入";
+            currentTranslations["ui.players.title"] = "在线玩家";
+            currentTranslations["ui.status.disconnected"] = "未连接";
+            currentTranslations["ui.status.refreshing"] = "刷新中...";
+            currentTranslations["ui.status.notConnectedRelay"] = "未连接到中继服务器";
+            currentTranslations["ui.status.joining"] = "正在加入 {0}...";
+            currentTranslations["ui.error.emptyInput"] = "请输入IP和端口";
+            currentTranslations["ui.error.invalidPort"] = "端口格式错误";
+            currentTranslations["ui.error.serviceNotReady"] = "服务未就绪";
+            currentTranslations["ui.error"] = "错误";
+            currentTranslations["ui.server.management"] = "服务器管理";
+            currentTranslations["ui.server.info"] = "服务器信息";
+            currentTranslations["ui.server.port"] = "端口";
+            currentTranslations["ui.server.create"] = "创建主机";
+            currentTranslations["ui.server.close"] = "关闭主机";
+            currentTranslations["ui.actions.quickActions"] = "快捷操作";
+            currentTranslations["net.connectionSuccess"] = "连接成功: {0}";
+            currentTranslations["net.disconnected"] = "已断开: {0}, 原因: {1}";
+            currentTranslations["net.connectionLost"] = "连接丢失";
+        }
+        
+        private static void LoadEnglishFallback()
+        {
             currentTranslations["ui.window.title"] = "Co-op Mod Control Panel";
             currentTranslations["ui.window.playerStatus"] = "Player Status";
             currentTranslations["ui.mode.current"] = "Current Mode";
@@ -373,6 +445,26 @@ namespace EscapeFromDuckovCoopMod
             currentTranslations["ui.actions.quickActions"] = "Quick Actions";
             currentTranslations["ui.debug.lootBoxCount"] = "Printed {0} loot boxes";
             currentTranslations["ui.hint.toggleUI"] = "{0} Show/Hide";
+            currentTranslations["ui.hint.pressKey"] = "Press {0} to toggle UI";
+            
+            currentTranslations["ui.serverList.title"] = "Server List";
+            currentTranslations["ui.serverList.count"] = "Rooms: {0}";
+            currentTranslations["ui.serverList.host"] = "Host";
+            currentTranslations["ui.connect.title"] = "Connect to Server";
+            currentTranslations["ui.connect.ip"] = "IP Address";
+            currentTranslations["ui.connect.port"] = "Port";
+            currentTranslations["ui.button.refresh"] = "Refresh";
+            currentTranslations["ui.button.connect"] = "Connect";
+            currentTranslations["ui.button.disconnect"] = "Disconnect";
+            currentTranslations["ui.button.join"] = "Join";
+            currentTranslations["ui.players.title"] = "Online Players";
+            currentTranslations["ui.status.disconnected"] = "Disconnected";
+            currentTranslations["ui.status.refreshing"] = "Refreshing...";
+            currentTranslations["ui.status.notConnectedRelay"] = "Not connected to relay server";
+            currentTranslations["ui.status.joining"] = "Joining {0}...";
+            currentTranslations["ui.error.emptyInput"] = "Please enter IP and port";
+            currentTranslations["ui.error.invalidPort"] = "Invalid port number";
+            currentTranslations["ui.error.serviceNotReady"] = "Service not ready";
         }
 
         

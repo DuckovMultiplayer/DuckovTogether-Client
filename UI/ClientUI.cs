@@ -5,6 +5,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using EscapeFromDuckovCoopMod.Net.Relay;
 
 namespace EscapeFromDuckovCoopMod.UI;
 
@@ -14,26 +15,28 @@ public class ClientUI : MonoBehaviour
     
     private Canvas _canvas;
     private GameObject _mainPanel;
-    private GameObject _connectPanel;
-    private GameObject _statusPanel;
-    private GameObject _playerListPanel;
-    
+    private RectTransform _mainPanelRect;
     private TMP_InputField _ipInput;
     private TMP_InputField _portInput;
     private TMP_Text _statusText;
     private TMP_Text _connectionText;
+    private TMP_Text _roomCountText;
+    private Transform _serverListContent;
     private Transform _playerListContent;
     
+    private readonly Dictionary<string, GameObject> _serverEntries = new();
     private readonly Dictionary<string, GameObject> _playerEntries = new();
     
     public bool IsVisible { get; private set; } = true;
     public KeyCode ToggleKey { get; set; } = KeyCode.F1;
     
     private ModBehaviourF Service => ModBehaviourF.Instance;
+    private RelayServerManager RelayManager => RelayServerManager.Instance;
     private bool IsConnected => Service?.networkStarted ?? false;
     
     private string _serverIP = "127.0.0.1";
     private string _serverPort = "9050";
+    private float _lastRefreshTime;
 
     private void Awake()
     {
@@ -58,7 +61,12 @@ public class ClientUI : MonoBehaviour
             _serverPort = Service.manualPort ?? _serverPort;
         }
         
-        UpdateUI();
+        UpdateInputFields();
+        
+        if (RelayManager != null)
+        {
+            RelayManager.OnRoomListUpdated += OnRoomListUpdated;
+        }
     }
 
     private void Update()
@@ -70,11 +78,21 @@ public class ClientUI : MonoBehaviour
         
         UpdateConnectionStatus();
         UpdatePlayerList();
+        
+        if (Time.time - _lastRefreshTime > 10f && RelayManager != null && RelayManager.IsConnectedToRelay)
+        {
+            _lastRefreshTime = Time.time;
+            RelayManager.RequestRoomList();
+        }
     }
 
     private void OnDestroy()
     {
         if (Instance == this) Instance = null;
+        if (RelayManager != null)
+        {
+            RelayManager.OnRoomListUpdated -= OnRoomListUpdated;
+        }
     }
 
     public void ToggleVisibility()
@@ -115,121 +133,185 @@ public class ClientUI : MonoBehaviour
 
     private void CreateMainPanel()
     {
-        _mainPanel = CreatePanel("MainPanel", _canvas.transform, new Vector2(400, 500), new Vector2(220, 300));
+        _mainPanel = CreatePanel("MainPanel", _canvas.transform, new Vector2(900, 600), new Vector2(100, 100));
+        _mainPanelRect = _mainPanel.GetComponent<RectTransform>();
         
-        var layout = _mainPanel.AddComponent<VerticalLayoutGroup>();
-        layout.padding = new RectOffset(20, 20, 20, 20);
+        var dragHandler = _mainPanel.AddComponent<UIDragHandler>();
+        dragHandler.Target = _mainPanelRect;
+        
+        var mainLayout = _mainPanel.AddComponent<VerticalLayoutGroup>();
+        mainLayout.padding = new RectOffset(0, 0, 0, 0);
+        mainLayout.spacing = 0;
+        mainLayout.childForceExpandWidth = true;
+        mainLayout.childForceExpandHeight = false;
+        mainLayout.childControlHeight = true;
+        
+        CreateTitleBar();
+        CreateContentArea();
+    }
+
+    private void CreateTitleBar()
+    {
+        var titleBar = CreateContainer("TitleBar", _mainPanel.transform, 50);
+        var bg = titleBar.AddComponent<Image>();
+        bg.color = UIColors.TitleBg;
+        
+        var layout = titleBar.AddComponent<HorizontalLayoutGroup>();
+        layout.padding = new RectOffset(20, 20, 10, 10);
         layout.spacing = 15;
-        layout.childForceExpandWidth = true;
+        layout.childAlignment = TextAnchor.MiddleLeft;
+        layout.childForceExpandWidth = false;
+        
+        CreateLabel("Title", titleBar.transform, "Duckov Together", 22, FontStyles.Bold, UIColors.Text);
+        
+        var spacer = new GameObject("Spacer");
+        spacer.transform.SetParent(titleBar.transform, false);
+        spacer.AddComponent<LayoutElement>().flexibleWidth = 1;
+        
+        _connectionText = CreateLabel("Status", titleBar.transform, L("ui.status.disconnected"), 14, FontStyles.Normal, UIColors.Error);
+        
+        CreateButton("CloseBtn", titleBar.transform, "×", UIColors.Error, () => ToggleVisibility(), 40, 30);
+    }
+
+    private void CreateContentArea()
+    {
+        var content = CreateContainer("Content", _mainPanel.transform, 550);
+        content.AddComponent<LayoutElement>().flexibleHeight = 1;
+        
+        var layout = content.AddComponent<HorizontalLayoutGroup>();
+        layout.padding = new RectOffset(15, 15, 15, 15);
+        layout.spacing = 15;
+        layout.childForceExpandWidth = false;
+        layout.childForceExpandHeight = true;
+        
+        CreateLeftPanel(content.transform);
+        CreateRightPanel(content.transform);
+    }
+
+    private void CreateLeftPanel(Transform parent)
+    {
+        var leftPanel = CreateContainer("LeftPanel", parent, 0);
+        leftPanel.AddComponent<LayoutElement>().preferredWidth = 520;
+        
+        var layout = leftPanel.AddComponent<VerticalLayoutGroup>();
+        layout.spacing = 10;
         layout.childForceExpandHeight = false;
         layout.childControlHeight = true;
         
-        CreateHeader();
-        CreateConnectionPanel();
-        CreateStatusPanel();
-        CreatePlayerListPanel();
-        CreateFooter();
-    }
-
-    private void CreateHeader()
-    {
-        var header = CreateContainer("Header", _mainPanel.transform, 50);
-        var headerLayout = header.AddComponent<HorizontalLayoutGroup>();
-        headerLayout.childForceExpandWidth = false;
-        headerLayout.childAlignment = TextAnchor.MiddleLeft;
+        var headerCard = CreateCard("ServerListHeader", leftPanel.transform, 50);
+        var headerLayout = headerCard.AddComponent<HorizontalLayoutGroup>();
+        headerLayout.padding = new RectOffset(15, 15, 10, 10);
         headerLayout.spacing = 10;
+        headerLayout.childAlignment = TextAnchor.MiddleLeft;
+        headerLayout.childForceExpandWidth = false;
         
-        CreateLabel("Title", header.transform, "Duckov Together", 24, FontStyles.Bold, UIColors.Text);
+        CreateLabel("Title", headerCard.transform, L("ui.serverList.title"), 16, FontStyles.Bold, UIColors.Text);
+        _roomCountText = CreateLabel("Count", headerCard.transform, L("ui.serverList.count", 0), 12, FontStyles.Normal, UIColors.TextSecondary);
         
-        var spacer = new GameObject("Spacer");
-        spacer.transform.SetParent(header.transform, false);
-        spacer.AddComponent<LayoutElement>().flexibleWidth = 1;
+        var headerSpacer = new GameObject("Spacer");
+        headerSpacer.transform.SetParent(headerCard.transform, false);
+        headerSpacer.AddComponent<LayoutElement>().flexibleWidth = 1;
         
-        CreateLabel("Version", header.transform, "v1.0", 14, FontStyles.Normal, UIColors.TextSecondary);
+        CreateButton("RefreshBtn", headerCard.transform, L("ui.button.refresh"), UIColors.Primary, OnRefreshClick, 80, 30);
+        
+        var scrollView = CreateScrollView("ServerListScroll", leftPanel.transform, 380);
+        _serverListContent = scrollView.transform.Find("Viewport/Content");
+        
+        var statusBar = CreateContainer("StatusBar", leftPanel.transform, 40);
+        var statusLayout = statusBar.AddComponent<HorizontalLayoutGroup>();
+        statusLayout.padding = new RectOffset(10, 10, 5, 5);
+        statusLayout.childAlignment = TextAnchor.MiddleLeft;
+        
+        _statusText = CreateLabel("Status", statusBar.transform, L("ui.hint.pressKey", ToggleKey.ToString()), 12, FontStyles.Normal, UIColors.TextSecondary);
     }
 
-    private void CreateConnectionPanel()
+    private void CreateRightPanel(Transform parent)
     {
-        _connectPanel = CreateCard("ConnectPanel", _mainPanel.transform, 180);
+        var rightPanel = CreateContainer("RightPanel", parent, 0);
+        rightPanel.AddComponent<LayoutElement>().flexibleWidth = 1;
         
-        var layout = _connectPanel.AddComponent<VerticalLayoutGroup>();
+        var layout = rightPanel.AddComponent<VerticalLayoutGroup>();
+        layout.spacing = 10;
+        layout.childForceExpandHeight = false;
+        layout.childControlHeight = true;
+        
+        CreateConnectCard(rightPanel.transform);
+        CreatePlayerListCard(rightPanel.transform);
+    }
+
+    private void CreateConnectCard(Transform parent)
+    {
+        var card = CreateCard("ConnectCard", parent, 200);
+        var layout = card.AddComponent<VerticalLayoutGroup>();
         layout.padding = new RectOffset(15, 15, 15, 15);
         layout.spacing = 10;
         layout.childForceExpandWidth = true;
         layout.childForceExpandHeight = false;
         
-        CreateLabel("ConnectTitle", _connectPanel.transform, "Server Connection", 18, FontStyles.Bold, UIColors.Text);
+        CreateLabel("Title", card.transform, L("ui.connect.title"), 16, FontStyles.Bold, UIColors.Text);
         
-        var ipRow = CreateInputRow(_connectPanel.transform, "IP Address", _serverIP, out _ipInput);
+        var ipRow = CreateInputRow(card.transform, L("ui.connect.ip"), _serverIP, out _ipInput);
         _ipInput.onValueChanged.AddListener(v => _serverIP = v);
         
-        var portRow = CreateInputRow(_connectPanel.transform, "Port", _serverPort, out _portInput);
+        var portRow = CreateInputRow(card.transform, L("ui.connect.port"), _serverPort, out _portInput);
         _portInput.contentType = TMP_InputField.ContentType.IntegerNumber;
         _portInput.onValueChanged.AddListener(v => _serverPort = v);
         
-        var buttonRow = CreateContainer("ButtonRow", _connectPanel.transform, 45);
+        var buttonRow = CreateContainer("Buttons", card.transform, 45);
         var buttonLayout = buttonRow.AddComponent<HorizontalLayoutGroup>();
         buttonLayout.spacing = 10;
         buttonLayout.childForceExpandWidth = true;
         
-        CreateButton("ConnectBtn", buttonRow.transform, "Connect", UIColors.Primary, OnConnectClick);
-        CreateButton("DisconnectBtn", buttonRow.transform, "Disconnect", UIColors.Error, OnDisconnectClick);
+        CreateButton("ConnectBtn", buttonRow.transform, L("ui.button.connect"), UIColors.Success, OnConnectClick, -1, 40);
+        CreateButton("DisconnectBtn", buttonRow.transform, L("ui.button.disconnect"), UIColors.Error, OnDisconnectClick, -1, 40);
     }
 
-    private void CreateStatusPanel()
+    private void CreatePlayerListCard(Transform parent)
     {
-        _statusPanel = CreateCard("StatusPanel", _mainPanel.transform, 80);
+        var card = CreateCard("PlayerListCard", parent, 0);
+        card.AddComponent<LayoutElement>().flexibleHeight = 1;
         
-        var layout = _statusPanel.AddComponent<VerticalLayoutGroup>();
-        layout.padding = new RectOffset(15, 15, 10, 10);
-        layout.spacing = 5;
-        layout.childForceExpandWidth = true;
-        
-        _connectionText = CreateLabel("ConnectionStatus", _statusPanel.transform, "Disconnected", 16, FontStyles.Bold, UIColors.Error);
-        _statusText = CreateLabel("StatusMessage", _statusPanel.transform, "Press F1 to toggle UI", 12, FontStyles.Normal, UIColors.TextSecondary);
-    }
-
-    private void CreatePlayerListPanel()
-    {
-        _playerListPanel = CreateCard("PlayerListPanel", _mainPanel.transform, 120);
-        
-        var layout = _playerListPanel.AddComponent<VerticalLayoutGroup>();
+        var layout = card.AddComponent<VerticalLayoutGroup>();
         layout.padding = new RectOffset(15, 15, 10, 10);
         layout.spacing = 5;
         layout.childForceExpandHeight = false;
         
-        CreateLabel("PlayersTitle", _playerListPanel.transform, "Players Online", 14, FontStyles.Bold, UIColors.Text);
+        CreateLabel("Title", card.transform, L("ui.players.title"), 14, FontStyles.Bold, UIColors.Text);
         
-        var scrollView = CreateScrollView("PlayerScroll", _playerListPanel.transform, 80);
+        var scrollView = CreateScrollView("PlayerScroll", card.transform, 150);
         _playerListContent = scrollView.transform.Find("Viewport/Content");
     }
 
-    private void CreateFooter()
+    private void OnRefreshClick()
     {
-        var footer = CreateContainer("Footer", _mainPanel.transform, 30);
-        var footerLayout = footer.AddComponent<HorizontalLayoutGroup>();
-        footerLayout.childAlignment = TextAnchor.MiddleCenter;
-        
-        CreateLabel("FooterText", footer.transform, "Duckov Team - Headless Server Mode", 11, FontStyles.Italic, UIColors.TextSecondary);
+        if (RelayManager != null && RelayManager.IsConnectedToRelay)
+        {
+            RelayManager.RequestRoomList();
+            SetStatus(L("ui.status.refreshing"), UIColors.Warning);
+        }
+        else
+        {
+            SetStatus(L("ui.status.notConnectedRelay"), UIColors.Error);
+        }
     }
 
     private void OnConnectClick()
     {
         if (string.IsNullOrEmpty(_serverIP) || string.IsNullOrEmpty(_serverPort))
         {
-            SetStatus("Please enter server IP and port", UIColors.Warning);
+            SetStatus(L("ui.error.emptyInput"), UIColors.Error);
             return;
         }
         
         if (!int.TryParse(_serverPort, out int port))
         {
-            SetStatus("Invalid port number", UIColors.Error);
+            SetStatus(L("ui.error.invalidPort"), UIColors.Error);
             return;
         }
         
         if (Service == null)
         {
-            SetStatus("Service not ready", UIColors.Error);
+            SetStatus(L("ui.error.serviceNotReady"), UIColors.Error);
             return;
         }
         
@@ -238,7 +320,7 @@ public class ClientUI : MonoBehaviour
         Service.StartNetwork(false);
         Service.ConnectToHost(_serverIP, port);
         
-        SetStatus($"Connecting to {_serverIP}:{port}...", UIColors.Warning);
+        SetStatus(L("ui.status.connecting", _serverIP, port), UIColors.Warning);
     }
 
     private void OnDisconnectClick()
@@ -246,7 +328,74 @@ public class ClientUI : MonoBehaviour
         if (Service == null) return;
         
         Service.StopNetwork();
-        SetStatus("Disconnected", UIColors.TextSecondary);
+        SetStatus(L("ui.status.disconnected"), UIColors.TextSecondary);
+    }
+
+    private void OnRoomListUpdated(OnlineRoom[] rooms)
+    {
+        if (_serverListContent == null) return;
+        
+        foreach (var entry in _serverEntries.Values)
+        {
+            if (entry != null) Destroy(entry);
+        }
+        _serverEntries.Clear();
+        
+        if (rooms == null || rooms.Length == 0)
+        {
+            _roomCountText.text = L("ui.serverList.count", 0);
+            return;
+        }
+        
+        _roomCountText.text = L("ui.serverList.count", rooms.Length);
+        
+        foreach (var room in rooms)
+        {
+            CreateServerEntry(room);
+        }
+    }
+
+    private void CreateServerEntry(OnlineRoom room)
+    {
+        var entry = new GameObject($"Room_{room.RoomId}");
+        entry.transform.SetParent(_serverListContent, false);
+        
+        var entryLayout = entry.AddComponent<LayoutElement>();
+        entryLayout.preferredHeight = 50;
+        
+        var bg = entry.AddComponent<Image>();
+        bg.color = UIColors.CardBg;
+        
+        var layout = entry.AddComponent<HorizontalLayoutGroup>();
+        layout.padding = new RectOffset(15, 15, 8, 8);
+        layout.spacing = 15;
+        layout.childAlignment = TextAnchor.MiddleLeft;
+        layout.childForceExpandWidth = false;
+        
+        var infoContainer = new GameObject("Info");
+        infoContainer.transform.SetParent(entry.transform, false);
+        var infoLayout = infoContainer.AddComponent<VerticalLayoutGroup>();
+        infoLayout.spacing = 2;
+        infoLayout.childForceExpandHeight = false;
+        infoContainer.AddComponent<LayoutElement>().flexibleWidth = 1;
+        
+        CreateLabel("Name", infoContainer.transform, room.DisplayName ?? room.RoomId, 14, FontStyles.Bold, UIColors.Text);
+        CreateLabel("Host", infoContainer.transform, $"{L("ui.serverList.host")}: {room.HostName ?? "Unknown"}", 11, FontStyles.Normal, UIColors.TextSecondary);
+        
+        var playerCount = CreateLabel("Players", entry.transform, room.PlayersText, 14, FontStyles.Bold, UIColors.Primary);
+        playerCount.gameObject.AddComponent<LayoutElement>().preferredWidth = 50;
+        
+        CreateButton("JoinBtn", entry.transform, L("ui.button.join"), UIColors.Success, () => OnJoinRoom(room), 70, 35);
+        
+        _serverEntries[room.RoomId] = entry;
+    }
+
+    private void OnJoinRoom(OnlineRoom room)
+    {
+        if (RelayManager == null) return;
+        
+        SetStatus(L("ui.status.joining", room.RoomName ?? room.RoomId), UIColors.Warning);
+        RelayManager.JoinRoom(room);
     }
 
     private void UpdateConnectionStatus()
@@ -255,12 +404,12 @@ public class ClientUI : MonoBehaviour
         
         if (IsConnected)
         {
-            _connectionText.text = "Connected";
+            _connectionText.text = L("ui.status.connected");
             _connectionText.color = UIColors.Success;
         }
         else
         {
-            _connectionText.text = "Disconnected";
+            _connectionText.text = L("ui.status.disconnected");
             _connectionText.color = UIColors.Error;
         }
     }
@@ -306,12 +455,12 @@ public class ClientUI : MonoBehaviour
         entry.transform.SetParent(_playerListContent, false);
         
         var layout = entry.AddComponent<HorizontalLayoutGroup>();
-        layout.padding = new RectOffset(5, 5, 2, 2);
+        layout.padding = new RectOffset(10, 10, 5, 5);
         layout.spacing = 10;
         layout.childAlignment = TextAnchor.MiddleLeft;
         
         var layoutElement = entry.AddComponent<LayoutElement>();
-        layoutElement.preferredHeight = 25;
+        layoutElement.preferredHeight = 30;
         
         var bg = entry.AddComponent<Image>();
         bg.color = UIColors.CardBg;
@@ -330,10 +479,15 @@ public class ClientUI : MonoBehaviour
         }
     }
 
-    private void UpdateUI()
+    private void UpdateInputFields()
     {
         if (_ipInput != null) _ipInput.text = _serverIP;
         if (_portInput != null) _portInput.text = _serverPort;
+    }
+
+    private string L(string key, params object[] args)
+    {
+        return CoopLocalization.Get(key, args);
     }
 
     private GameObject CreatePanel(string name, Transform parent, Vector2 size, Vector2 position)
@@ -363,8 +517,11 @@ public class ClientUI : MonoBehaviour
         var card = new GameObject(name);
         card.transform.SetParent(parent, false);
         
-        var layoutElement = card.AddComponent<LayoutElement>();
-        layoutElement.preferredHeight = height;
+        if (height > 0)
+        {
+            var layoutElement = card.AddComponent<LayoutElement>();
+            layoutElement.preferredHeight = height;
+        }
         
         var bg = card.AddComponent<Image>();
         bg.color = UIColors.CardBg;
@@ -377,8 +534,11 @@ public class ClientUI : MonoBehaviour
         var container = new GameObject(name);
         container.transform.SetParent(parent, false);
         
-        var layoutElement = container.AddComponent<LayoutElement>();
-        layoutElement.preferredHeight = height;
+        if (height > 0)
+        {
+            var layoutElement = container.AddComponent<LayoutElement>();
+            layoutElement.preferredHeight = height;
+        }
         
         return container;
     }
@@ -411,10 +571,10 @@ public class ClientUI : MonoBehaviour
         var rowLayout = row.AddComponent<LayoutElement>();
         rowLayout.preferredHeight = 35;
         
-        var labelText = CreateLabel($"{label}Label", row.transform, label, 14, FontStyles.Normal, UIColors.TextSecondary);
+        var labelText = CreateLabel("Label", row.transform, label, 14, FontStyles.Normal, UIColors.TextSecondary);
         labelText.gameObject.AddComponent<LayoutElement>().preferredWidth = 80;
         
-        var inputGO = new GameObject($"{label}Input");
+        var inputGO = new GameObject("Input");
         inputGO.transform.SetParent(row.transform, false);
         
         var inputLayout = inputGO.AddComponent<LayoutElement>();
@@ -429,7 +589,7 @@ public class ClientUI : MonoBehaviour
         var textAreaRect = textArea.AddComponent<RectTransform>();
         textAreaRect.anchorMin = Vector2.zero;
         textAreaRect.anchorMax = Vector2.one;
-        textAreaRect.sizeDelta = new Vector2(-10, 0);
+        textAreaRect.sizeDelta = new Vector2(-16, 0);
         textAreaRect.anchoredPosition = Vector2.zero;
         
         var textComponent = new GameObject("Text");
@@ -452,14 +612,15 @@ public class ClientUI : MonoBehaviour
         return row;
     }
 
-    private void CreateButton(string name, Transform parent, string text, Color bgColor, Action onClick)
+    private void CreateButton(string name, Transform parent, string text, Color bgColor, Action onClick, float width = -1, float height = 40)
     {
         var buttonGO = new GameObject(name);
         buttonGO.transform.SetParent(parent, false);
         
         var layoutElement = buttonGO.AddComponent<LayoutElement>();
-        layoutElement.preferredHeight = 40;
-        layoutElement.flexibleWidth = 1;
+        layoutElement.preferredHeight = height;
+        if (width > 0) layoutElement.preferredWidth = width;
+        else layoutElement.flexibleWidth = 1;
         
         var bg = buttonGO.AddComponent<Image>();
         bg.color = bgColor;
@@ -469,8 +630,8 @@ public class ClientUI : MonoBehaviour
         
         var colors = button.colors;
         colors.normalColor = bgColor;
-        colors.highlightedColor = bgColor * 1.1f;
-        colors.pressedColor = bgColor * 0.9f;
+        colors.highlightedColor = bgColor * 1.15f;
+        colors.pressedColor = bgColor * 0.85f;
         button.colors = colors;
         
         if (onClick != null)
@@ -488,7 +649,7 @@ public class ClientUI : MonoBehaviour
         
         var tmp = labelGO.AddComponent<TextMeshProUGUI>();
         tmp.text = text;
-        tmp.fontSize = 16;
+        tmp.fontSize = 14;
         tmp.fontStyle = FontStyles.Bold;
         tmp.color = Color.white;
         tmp.alignment = TextAlignmentOptions.Center;
@@ -502,6 +663,7 @@ public class ClientUI : MonoBehaviour
         var scrollLayout = scrollGO.AddComponent<LayoutElement>();
         scrollLayout.preferredHeight = height;
         scrollLayout.flexibleWidth = 1;
+        scrollLayout.flexibleHeight = 1;
         
         var scrollRect = scrollGO.AddComponent<ScrollRect>();
         scrollRect.horizontal = false;
@@ -541,17 +703,54 @@ public class ClientUI : MonoBehaviour
 
     public static class UIColors
     {
-        public static readonly Color PanelBg = new Color(0.12f, 0.12f, 0.14f, 0.95f);
-        public static readonly Color CardBg = new Color(0.18f, 0.18f, 0.20f, 1f);
-        public static readonly Color InputBg = new Color(0.22f, 0.22f, 0.24f, 1f);
-        public static readonly Color Border = new Color(0.3f, 0.3f, 0.32f, 1f);
+        public static readonly Color PanelBg = new Color(0.10f, 0.10f, 0.12f, 0.98f);
+        public static readonly Color TitleBg = new Color(0.08f, 0.08f, 0.10f, 1f);
+        public static readonly Color CardBg = new Color(0.16f, 0.16f, 0.18f, 1f);
+        public static readonly Color InputBg = new Color(0.20f, 0.20f, 0.22f, 1f);
+        public static readonly Color Border = new Color(0.25f, 0.25f, 0.28f, 1f);
         
         public static readonly Color Text = new Color(0.95f, 0.95f, 0.95f, 1f);
-        public static readonly Color TextSecondary = new Color(0.7f, 0.7f, 0.7f, 1f);
+        public static readonly Color TextSecondary = new Color(0.65f, 0.65f, 0.65f, 1f);
         
-        public static readonly Color Primary = new Color(0.2f, 0.6f, 0.9f, 1f);
-        public static readonly Color Success = new Color(0.3f, 0.8f, 0.4f, 1f);
-        public static readonly Color Warning = new Color(0.9f, 0.7f, 0.2f, 1f);
-        public static readonly Color Error = new Color(0.9f, 0.3f, 0.3f, 1f);
+        public static readonly Color Primary = new Color(0.25f, 0.55f, 0.85f, 1f);
+        public static readonly Color Success = new Color(0.25f, 0.75f, 0.35f, 1f);
+        public static readonly Color Warning = new Color(0.85f, 0.65f, 0.20f, 1f);
+        public static readonly Color Error = new Color(0.85f, 0.30f, 0.30f, 1f);
     }
+}
+
+public class UIDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
+{
+    public RectTransform Target;
+    private Vector2 _dragOffset;
+    private Canvas _canvas;
+
+    private void Awake()
+    {
+        _canvas = GetComponentInParent<Canvas>();
+    }
+
+    public void OnBeginDrag(PointerEventData eventData)
+    {
+        if (Target == null) return;
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            Target.parent as RectTransform, 
+            eventData.position, 
+            _canvas?.worldCamera, 
+            out var localPoint);
+        _dragOffset = Target.anchoredPosition - localPoint;
+    }
+
+    public void OnDrag(PointerEventData eventData)
+    {
+        if (Target == null) return;
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            Target.parent as RectTransform, 
+            eventData.position, 
+            _canvas?.worldCamera, 
+            out var localPoint);
+        Target.anchoredPosition = localPoint + _dragOffset;
+    }
+
+    public void OnEndDrag(PointerEventData eventData) { }
 }
