@@ -1,11 +1,9 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using EscapeFromDuckovCoopMod.Net.Relay;
 
 namespace EscapeFromDuckovCoopMod.UI;
 
@@ -21,13 +19,10 @@ public class ClientUI : MonoBehaviour
     private TMP_Text _statusText;
     private TMP_Text _connectionText;
     private TMP_Text _roomCountText;
-    private TMP_Text _relayStatusText;
-    private TMP_Text _pingText;
     private Transform _serverListContent;
     private Transform _playerListContent;
     private Button _connectBtn;
     private Button _disconnectBtn;
-    private Image _relayIndicator;
     
     private readonly Dictionary<string, GameObject> _serverEntries = new();
     private readonly Dictionary<string, GameObject> _playerEntries = new();
@@ -36,14 +31,10 @@ public class ClientUI : MonoBehaviour
     public KeyCode ToggleKey { get; set; } = KeyCode.F1;
     
     private ModBehaviourF Service => ModBehaviourF.Instance;
-    private RelayServerManager RelayManager => RelayServerManager.Instance;
     private bool IsConnected => Service?.networkStarted ?? false;
     
     private string _serverIP = "127.0.0.1";
     private string _serverPort = "9050";
-    private float _lastRefreshTime;
-    private float _pingUpdateTime;
-    private int _currentPing;
 
     private void Awake()
     {
@@ -70,11 +61,6 @@ public class ClientUI : MonoBehaviour
         
         UpdateInputFields();
         
-        if (RelayManager != null)
-        {
-            RelayManager.OnRoomListUpdated += OnRoomListUpdated;
-            RelayManager.OnNodeSelected += OnNodeSelected;
-        }
     }
 
     private void Update()
@@ -85,26 +71,13 @@ public class ClientUI : MonoBehaviour
         }
         
         UpdateConnectionStatus();
-        UpdateRelayStatus();
         UpdatePlayerList();
         UpdateButtonStates();
-        UpdatePing();
-        
-        if (Time.time - _lastRefreshTime > 15f && RelayManager != null && RelayManager.IsConnectedToRelay)
-        {
-            _lastRefreshTime = Time.time;
-            RelayManager.RequestRoomList();
-        }
     }
 
     private void OnDestroy()
     {
         if (Instance == this) Instance = null;
-        if (RelayManager != null)
-        {
-            RelayManager.OnRoomListUpdated -= OnRoomListUpdated;
-            RelayManager.OnNodeSelected -= OnNodeSelected;
-        }
     }
 
     public void ToggleVisibility()
@@ -159,7 +132,6 @@ public class ClientUI : MonoBehaviour
         mainLayout.childControlHeight = true;
         
         CreateTitleBar();
-        CreateRelayStatusBar();
         CreateContentArea();
         CreateFooter();
     }
@@ -188,34 +160,6 @@ public class ClientUI : MonoBehaviour
         CreateButton("CloseBtn", titleBar.transform, "×", UIColors.Error, () => ToggleVisibility(), 35, 30);
     }
 
-    private void CreateRelayStatusBar()
-    {
-        var statusBar = CreateContainer("RelayStatusBar", _mainPanel.transform, 35);
-        var bg = statusBar.AddComponent<Image>();
-        bg.color = new Color(0.12f, 0.12f, 0.14f, 1f);
-        
-        var layout = statusBar.AddComponent<HorizontalLayoutGroup>();
-        layout.padding = new RectOffset(20, 20, 5, 5);
-        layout.spacing = 15;
-        layout.childAlignment = TextAnchor.MiddleLeft;
-        layout.childForceExpandWidth = false;
-        
-        var indicatorGO = new GameObject("Indicator");
-        indicatorGO.transform.SetParent(statusBar.transform, false);
-        indicatorGO.AddComponent<LayoutElement>().preferredWidth = 10;
-        _relayIndicator = indicatorGO.AddComponent<Image>();
-        _relayIndicator.color = UIColors.Error;
-        
-        _relayStatusText = CreateLabel("RelayStatus", statusBar.transform, L("ui.relay.disconnected"), 12, FontStyles.Normal, UIColors.TextSecondary);
-        
-        var spacer = new GameObject("Spacer");
-        spacer.transform.SetParent(statusBar.transform, false);
-        spacer.AddComponent<LayoutElement>().flexibleWidth = 1;
-        
-        _pingText = CreateLabel("Ping", statusBar.transform, "", 12, FontStyles.Normal, UIColors.TextSecondary);
-        
-        CreateButton("SelectNodeBtn", statusBar.transform, L("ui.relay.selectNode"), UIColors.Primary, OnSelectNode, 100, 25, 12);
-    }
 
     private void CreateContentArea()
     {
@@ -376,39 +320,9 @@ public class ClientUI : MonoBehaviour
         CreateLabel("Version", footer.transform, "v1.0.0", 11, FontStyles.Italic, new Color(0.5f, 0.5f, 0.5f, 0.8f));
     }
 
-    private void OnSelectNode()
-    {
-        if (RelayManager != null)
-        {
-            RelayManager.ConnectToRelay();
-            SetStatus(L("ui.status.connecting"), UIColors.Warning);
-        }
-        else
-        {
-            SetStatus(L("ui.error.serviceNotReady"), UIColors.Error);
-        }
-    }
-
-    private void OnNodeSelected(RelayNode node)
-    {
-        if (node != null)
-        {
-            SetStatus($"{L("ui.relay.connected")}: {node.NodeName}", UIColors.Success);
-        }
-    }
-
     private void OnRefreshClick()
     {
-        if (RelayManager != null && RelayManager.IsConnectedToRelay)
-        {
-            RelayManager.RequestRoomList();
-            SetStatus(L("ui.status.refreshing"), UIColors.Warning);
-        }
-        else
-        {
-            SetStatus(L("ui.status.notConnectedRelay"), UIColors.Error);
-            OnSelectNode();
-        }
+        SetStatus(L("ui.status.refreshing"), UIColors.Warning);
     }
 
     private void OnConnectClick()
@@ -457,81 +371,6 @@ public class ClientUI : MonoBehaviour
         SetStatus(L("ui.settings.title"), UIColors.Info);
     }
 
-    private void OnRoomListUpdated(OnlineRoom[] rooms)
-    {
-        if (_serverListContent == null) return;
-        
-        foreach (Transform child in _serverListContent)
-        {
-            Destroy(child.gameObject);
-        }
-        _serverEntries.Clear();
-        
-        if (rooms == null || rooms.Length == 0)
-        {
-            _roomCountText.text = L("ui.serverList.count", 0);
-            CreateEmptyServerListHint();
-            return;
-        }
-        
-        _roomCountText.text = L("ui.serverList.count", rooms.Length);
-        
-        foreach (var room in rooms)
-        {
-            CreateServerEntry(room);
-        }
-    }
-
-    private void CreateServerEntry(OnlineRoom room)
-    {
-        var entry = new GameObject($"Room_{room.RoomId}");
-        entry.transform.SetParent(_serverListContent, false);
-        
-        var entryLayout = entry.AddComponent<LayoutElement>();
-        entryLayout.preferredHeight = 55;
-        
-        var bg = entry.AddComponent<Image>();
-        bg.color = UIColors.CardBg;
-        
-        var layout = entry.AddComponent<HorizontalLayoutGroup>();
-        layout.padding = new RectOffset(15, 12, 8, 8);
-        layout.spacing = 12;
-        layout.childAlignment = TextAnchor.MiddleLeft;
-        layout.childForceExpandWidth = false;
-        
-        var infoContainer = new GameObject("Info");
-        infoContainer.transform.SetParent(entry.transform, false);
-        var infoLayout = infoContainer.AddComponent<VerticalLayoutGroup>();
-        infoLayout.spacing = 2;
-        infoLayout.childForceExpandHeight = false;
-        infoContainer.AddComponent<LayoutElement>().flexibleWidth = 1;
-        
-        var nameLabel = CreateLabel("Name", infoContainer.transform, room.DisplayName ?? room.RoomId, 14, FontStyles.Bold, UIColors.Text);
-        var hostLabel = CreateLabel("Host", infoContainer.transform, $"{L("ui.serverList.host")}: {room.HostName ?? "Unknown"}", 11, FontStyles.Normal, UIColors.TextSecondary);
-        
-        if (room.Latency > 0)
-        {
-            var pingColor = room.Latency < 50 ? UIColors.Success : room.Latency < 100 ? UIColors.Warning : UIColors.Error;
-            var pingLabel = CreateLabel("Ping", entry.transform, $"{room.Latency}ms", 12, FontStyles.Normal, pingColor);
-            pingLabel.gameObject.AddComponent<LayoutElement>().preferredWidth = 45;
-        }
-        
-        var playerCount = CreateLabel("Players", entry.transform, room.PlayersText, 14, FontStyles.Bold, room.IsFull ? UIColors.Error : UIColors.Primary);
-        playerCount.gameObject.AddComponent<LayoutElement>().preferredWidth = 40;
-        
-        var joinBtn = CreateButtonWithRef("JoinBtn", entry.transform, L("ui.button.join"), room.IsFull ? UIColors.Secondary : UIColors.Success, () => OnJoinRoom(room), 65, 35, 13);
-        joinBtn.interactable = !room.IsFull;
-        
-        _serverEntries[room.RoomId] = entry;
-    }
-
-    private void OnJoinRoom(OnlineRoom room)
-    {
-        if (RelayManager == null) return;
-        
-        SetStatus(L("ui.status.joining", room.RoomName ?? room.RoomId), UIColors.Warning);
-        RelayManager.JoinRoom(room);
-    }
 
     private void UpdateConnectionStatus()
     {
@@ -549,59 +388,10 @@ public class ClientUI : MonoBehaviour
         }
     }
 
-    private void UpdateRelayStatus()
-    {
-        if (_relayStatusText == null || _relayIndicator == null) return;
-        
-        if (RelayManager != null && RelayManager.IsConnectedToRelay)
-        {
-            _relayIndicator.color = UIColors.Success;
-            var selectedNode = RelayManager.SelectedNode;
-            _relayStatusText.text = selectedNode != null ? $"{L("ui.relay.connected")}: {selectedNode.NodeName}" : L("ui.relay.connected");
-            _relayStatusText.color = UIColors.Text;
-        }
-        else
-        {
-            _relayIndicator.color = UIColors.Error;
-            _relayStatusText.text = L("ui.relay.disconnected");
-            _relayStatusText.color = UIColors.TextSecondary;
-        }
-    }
-
     private void UpdateButtonStates()
     {
         if (_connectBtn != null) _connectBtn.interactable = !IsConnected;
         if (_disconnectBtn != null) _disconnectBtn.interactable = IsConnected;
-    }
-
-    private void UpdatePing()
-    {
-        if (_pingText == null) return;
-        
-        if (Time.time - _pingUpdateTime > 1f)
-        {
-            _pingUpdateTime = Time.time;
-            
-            if (IsConnected && Service != null && Service.netManager != null)
-            {
-                var peer = Service.netManager.FirstPeer;
-                if (peer != null)
-                {
-                    _currentPing = peer.Ping;
-                }
-            }
-        }
-        
-        if (IsConnected && _currentPing > 0)
-        {
-            var pingColor = _currentPing < 50 ? UIColors.Success : _currentPing < 100 ? UIColors.Warning : UIColors.Error;
-            _pingText.text = $"{L("ui.relay.ping")}: {_currentPing}ms";
-            _pingText.color = pingColor;
-        }
-        else
-        {
-            _pingText.text = "";
-        }
     }
 
     private void UpdatePlayerList()
