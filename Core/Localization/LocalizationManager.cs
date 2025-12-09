@@ -244,18 +244,15 @@ namespace EscapeFromDuckovCoopMod
         private static void LoadFallbackTranslations()
         {
             currentTranslations.Clear();
+            LoadEnglishFallback();
             
             if (currentLanguageCode == "zh-CN")
             {
-                LoadChineseFallback();
-            }
-            else
-            {
-                LoadEnglishFallback();
+                LoadChineseOverrides();
             }
         }
         
-        private static void LoadChineseFallback()
+        private static void LoadChineseOverrides()
         {
             currentTranslations["ui.window.title"] = "多人联机控制面板";
             currentTranslations["ui.window.playerStatus"] = "玩家状态";
@@ -471,6 +468,7 @@ namespace EscapeFromDuckovCoopMod
             currentTranslations["ui.serverList.title"] = "Server List";
             currentTranslations["ui.serverList.count"] = "Rooms: {0}";
             currentTranslations["ui.serverList.host"] = "Host";
+            currentTranslations["ui.serverList.empty"] = "No rooms available";
             currentTranslations["ui.connect.title"] = "Connect to Server";
             currentTranslations["ui.connect.ip"] = "IP Address";
             currentTranslations["ui.connect.port"] = "Port";
@@ -478,14 +476,34 @@ namespace EscapeFromDuckovCoopMod
             currentTranslations["ui.button.connect"] = "Connect";
             currentTranslations["ui.button.disconnect"] = "Disconnect";
             currentTranslations["ui.button.join"] = "Join";
+            currentTranslations["ui.button.settings"] = "Settings";
+            currentTranslations["ui.button.close"] = "Close";
             currentTranslations["ui.players.title"] = "Online Players";
+            currentTranslations["ui.players.empty"] = "No players";
+            currentTranslations["ui.players.you"] = "(You)";
             currentTranslations["ui.status.disconnected"] = "Disconnected";
             currentTranslations["ui.status.refreshing"] = "Refreshing...";
-            currentTranslations["ui.status.notConnectedRelay"] = "Not connected to relay server";
+            currentTranslations["ui.status.notConnectedRelay"] = "Not connected to relay";
             currentTranslations["ui.status.joining"] = "Joining {0}...";
             currentTranslations["ui.error.emptyInput"] = "Please enter IP and port";
             currentTranslations["ui.error.invalidPort"] = "Invalid port number";
             currentTranslations["ui.error.serviceNotReady"] = "Service not ready";
+            currentTranslations["ui.error.connectionFailed"] = "Connection failed";
+            currentTranslations["ui.error.timeout"] = "Connection timeout";
+            currentTranslations["ui.voice.title"] = "Voice Settings";
+            currentTranslations["ui.voice.mute"] = "Mute";
+            currentTranslations["ui.voice.unmute"] = "Unmute";
+            currentTranslations["ui.voice.volume"] = "Volume";
+            currentTranslations["ui.voice.ptt"] = "Push to Talk";
+            currentTranslations["ui.voice.pttKey"] = "PTT Key";
+            currentTranslations["ui.settings.title"] = "Settings";
+            currentTranslations["ui.settings.language"] = "Language";
+            currentTranslations["ui.settings.graphics"] = "Graphics";
+            currentTranslations["ui.settings.network"] = "Network";
+            currentTranslations["ui.relay.selectNode"] = "Select Node";
+            currentTranslations["ui.relay.connected"] = "Connected to node";
+            currentTranslations["ui.relay.disconnected"] = "Not connected";
+            currentTranslations["ui.relay.ping"] = "Ping";
         }
 
         
