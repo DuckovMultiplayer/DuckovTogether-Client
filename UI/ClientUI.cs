@@ -433,7 +433,7 @@ public class ClientUI : MonoBehaviour
         
         Service.manualIP = _serverIP;
         Service.manualPort = _serverPort;
-        Service.StartNetwork(false);
+        Service.port = port;
         Service.ConnectToHost(_serverIP, port);
         
         SetStatus(L("ui.status.connecting"), UIColors.Warning);
