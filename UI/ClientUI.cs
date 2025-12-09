@@ -51,8 +51,13 @@ public class ClientUI : MonoBehaviour
         public int MaxPlayers;
         public int PluginCount;
         public string Icon;
+        public byte[] LogoData;
+        public Sprite LogoSprite;
         public string Key => $"{IP}:{Port}";
     }
+    
+    private float _lastRefreshTime;
+    private const float AUTO_REFRESH_INTERVAL = 5f;
 
     private void Awake()
     {
@@ -91,6 +96,12 @@ public class ClientUI : MonoBehaviour
         UpdateConnectionStatus();
         UpdatePlayerList();
         UpdateButtonStates();
+        
+        if (IsVisible && _savedServers.Count > 0 && Time.time - _lastRefreshTime > AUTO_REFRESH_INTERVAL)
+        {
+            _lastRefreshTime = Time.time;
+            RefreshAllServers();
+        }
     }
 
     private void OnDestroy()
@@ -430,6 +441,15 @@ public class ClientUI : MonoBehaviour
                     Server.MaxPlayers = reader.GetInt();
                     Server.PluginCount = reader.TryGetInt(out var pluginCount) ? pluginCount : 0;
                     Server.Icon = reader.TryGetString(out var icon) ? icon : "default";
+                    
+                    if (reader.TryGetBool(out var hasLogo) && hasLogo)
+                    {
+                        if (reader.TryGetInt(out var logoSize) && logoSize > 0 && logoSize <= 64 * 1024)
+                        {
+                            Server.LogoData = reader.GetBytesWithLength();
+                        }
+                    }
+                    
                     Server.Ping = (int)Timer.ElapsedMilliseconds;
                     Server.IsOnline = true;
                     Received = true;
@@ -570,6 +590,27 @@ public class ClientUI : MonoBehaviour
         
         var nameLabel = entry.transform.Find("Info/Name")?.GetComponent<TMP_Text>();
         if (nameLabel != null) nameLabel.text = server.Name;
+        
+        if (server.LogoData != null && server.LogoData.Length > 0 && server.LogoSprite == null)
+        {
+            try
+            {
+                var texture = new Texture2D(2, 2);
+                if (texture.LoadImage(server.LogoData))
+                {
+                    server.LogoSprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+                    var iconImage = entry.transform.Find("Icon")?.GetComponent<Image>();
+                    if (iconImage != null)
+                    {
+                        iconImage.sprite = server.LogoSprite;
+                        iconImage.color = Color.white;
+                        var iconText = entry.transform.Find("Icon/IconText");
+                        if (iconText != null) iconText.gameObject.SetActive(false);
+                    }
+                }
+            }
+            catch { }
+        }
         
         var detailsLabel = entry.transform.Find("Info/Details")?.GetComponent<TMP_Text>();
         if (detailsLabel != null)
