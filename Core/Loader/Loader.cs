@@ -39,11 +39,9 @@ public class ModBehaviour : Duckov.Modding.ModBehaviour
         Debug.Log("[ModBehaviour] COOP_MOD_1 GameObject created");
 
         go.AddComponent<ModBehaviourF>();
-        Debug.Log("[ModBehaviour] ModBehaviourF.Instanced");
+        Debug.Log("[ModBehaviour] ModBehaviourF added");
         COOPManager.InitManager();
         Debug.Log("[ModBehaviour] COOPManager.InitManager() completed");
-        go.AddComponent<ModBehaviourF>();
-        Debug.Log("[ModBehaviour] ModBehaviourF added");
         Debug.Log("[ModBehaviour] About to call Loader()");
         Loader();
         Debug.Log("[ModBehaviour] OnEnable() COMPLETE");
