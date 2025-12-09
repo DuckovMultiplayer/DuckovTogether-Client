@@ -346,7 +346,8 @@ public class ClientUI : MonoBehaviour
         spacer.transform.SetParent(footer.transform, false);
         spacer.AddComponent<LayoutElement>().flexibleWidth = 1;
         
-        CreateLabel("Version", footer.transform, "v1.0.0", 11, FontStyles.Italic, new Color(0.5f, 0.5f, 0.5f, 0.8f));
+        CreateLabel("Copyright", footer.transform, "DuckovNet Protocol", 10, FontStyles.Normal, new Color(0.4f, 0.6f, 0.8f, 0.9f));
+        CreateLabel("Version", footer.transform, "v2.0.0", 11, FontStyles.Italic, new Color(0.5f, 0.5f, 0.5f, 0.8f));
     }
 
     private void OnRefreshClick()
