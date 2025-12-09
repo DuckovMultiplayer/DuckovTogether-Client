@@ -49,10 +49,10 @@ public class VersionLabel : MonoBehaviour
         labelGO.transform.SetParent(canvasGO.transform, false);
         
         var rect = labelGO.AddComponent<RectTransform>();
-        rect.anchorMin = new Vector2(1, 0);
-        rect.anchorMax = new Vector2(1, 0);
-        rect.pivot = new Vector2(1, 0);
-        rect.anchoredPosition = new Vector2(-15, 10);
+        rect.anchorMin = new Vector2(1, 1);
+        rect.anchorMax = new Vector2(1, 1);
+        rect.pivot = new Vector2(1, 1);
+        rect.anchoredPosition = new Vector2(-15, -10);
         rect.sizeDelta = new Vector2(300, 30);
         
         _versionText = labelGO.AddComponent<TextMeshProUGUI>();
