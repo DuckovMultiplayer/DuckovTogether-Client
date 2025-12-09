@@ -59,6 +59,8 @@ public class ModBehaviour : Duckov.Modding.ModBehaviour
         DontDestroyOnLoad(go);
         Debug.Log("[Loader] COOP_MOD_ GameObject created");
 
+        go.AddComponent<Net.CoopNetClient>();
+        Debug.Log("[Loader] CoopNetClient added");
         go.AddComponent<SteamP2PLoader>();
         Debug.Log("[Loader] SteamP2PLoader added");
         go.AddComponent<AIRequest>();
