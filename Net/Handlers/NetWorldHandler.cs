@@ -34,6 +34,19 @@ public class ClientWorldManager : MonoBehaviour
     {
         RegisterEvents();
         SceneManager.sceneLoaded += OnSceneLoaded;
+        
+        var activeScene = SceneManager.GetActiveScene();
+        if (activeScene.isLoaded && !string.IsNullOrEmpty(activeScene.name) && activeScene.name != "MainMenu")
+        {
+            CurrentSceneId = activeScene.name;
+            var client = DuckovTogetherClient.Instance;
+            if (client?.LocalPlayer != null)
+            {
+                client.LocalPlayer.SceneId = CurrentSceneId;
+                client.LocalPlayer.IsInGame = true;
+                Debug.Log($"[ClientWorld] Already in scene: {CurrentSceneId}, IsInGame=true");
+            }
+        }
     }
     
     private void Update()
