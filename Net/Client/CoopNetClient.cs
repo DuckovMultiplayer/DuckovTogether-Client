@@ -278,6 +278,9 @@ public class CoopNetClient : MonoBehaviour
                 case "serverState":
                     HandleServerState(json);
                     break;
+                case "worldSync":
+                    HandleWorldSync(json);
+                    break;
                 case "playerList":
                     HandlePlayerList(json);
                     break;
@@ -335,6 +338,17 @@ public class CoopNetClient : MonoBehaviour
     public string ServerName { get; private set; } = "";
     
     public event Action<ServerStateData> OnServerStateReceived;
+    public event Action<WorldSyncData> OnWorldSyncReceived;
+    
+    private void HandleWorldSync(string json)
+    {
+        var data = JsonConvert.DeserializeObject<WorldSyncData>(json);
+        if (data == null) return;
+        
+        Debug.Log($"[CoopNet] World sync received: buildings={data.buildings?.Count ?? 0}, loot={data.lootContainers?.Count ?? 0}, items={data.droppedItems?.Count ?? 0}");
+        
+        OnWorldSyncReceived?.Invoke(data);
+    }
     
     private void HandlePlayerList(string json)
     {
@@ -755,6 +769,51 @@ public class ServerStateData
     public string serverName { get; set; } = "";
     public int maxPlayers { get; set; } = 10;
     public int playerCount { get; set; } = 0;
+}
+
+[Serializable]
+public class WorldSyncData
+{
+    public string type { get; set; } = "worldSync";
+    public List<BuildingSyncEntry> buildings { get; set; }
+    public List<LootContainerSyncEntry> lootContainers { get; set; }
+    public List<DroppedItemSyncEntry> droppedItems { get; set; }
+}
+
+[Serializable]
+public class BuildingSyncEntry
+{
+    public string id { get; set; }
+    public string buildingType { get; set; }
+    public string ownerId { get; set; }
+    public string sceneId { get; set; }
+    public float posX { get; set; }
+    public float posY { get; set; }
+    public float posZ { get; set; }
+    public float rotX { get; set; }
+    public float rotY { get; set; }
+    public float rotZ { get; set; }
+    public float health { get; set; }
+    public int level { get; set; }
+}
+
+[Serializable]
+public class LootContainerSyncEntry
+{
+    public string id { get; set; }
+    public string sceneId { get; set; }
+    public bool isLooted { get; set; }
+}
+
+[Serializable]
+public class DroppedItemSyncEntry
+{
+    public string id { get; set; }
+    public string itemType { get; set; }
+    public float posX { get; set; }
+    public float posY { get; set; }
+    public float posZ { get; set; }
+    public string sceneId { get; set; }
 }
 
 [Serializable]
