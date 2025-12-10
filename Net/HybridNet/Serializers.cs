@@ -6,9 +6,14 @@ namespace EscapeFromDuckovCoopMod.Net.HybridNet;
 
 public static class JsonSerializer
 {
+    private static readonly JsonSerializerSettings Settings = new()
+    {
+        ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+    };
+    
     public static byte[] Serialize<T>(T obj)
     {
-        var json = JsonConvert.SerializeObject(obj);
+        var json = JsonConvert.SerializeObject(obj, Settings);
         return Encoding.UTF8.GetBytes(json);
     }
     
@@ -21,6 +26,11 @@ public static class JsonSerializer
 
 public static class BinarySerializer
 {
+    private static readonly JsonSerializerSettings Settings = new()
+    {
+        ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+    };
+    
     public static byte[] Serialize<T>(T obj)
     {
         if (obj is IAITransformData transform)
@@ -29,7 +39,7 @@ public static class BinarySerializer
         if (obj is IAIAnimationData anim)
             return SerializeAIAnimation(anim);
         
-        var json = JsonConvert.SerializeObject(obj);
+        var json = JsonConvert.SerializeObject(obj, Settings);
         return Encoding.UTF8.GetBytes(json);
     }
     

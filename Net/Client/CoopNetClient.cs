@@ -62,6 +62,12 @@ public class CoopNetClient : MonoBehaviour
             var worldGo = new GameObject("ClientWorldManager");
             worldGo.AddComponent<ClientWorldManager>();
         }
+        
+        if (DuckovTogetherClient.Instance == null)
+        {
+            var clientGo = new GameObject("DuckovTogetherClient");
+            clientGo.AddComponent<DuckovTogetherClient>();
+        }
     }
     
     private void Update()
