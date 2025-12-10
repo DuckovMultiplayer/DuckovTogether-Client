@@ -420,7 +420,7 @@ public class CoopNetClient : MonoBehaviour
     
     public void SendPlayerSync()
     {
-        if (!IsConnected) return;
+        if (!IsConnected || ServerPeer == null) return;
         
         var mainChar = GetLocalCharacter();
         if (mainChar == null) return;
@@ -445,7 +445,7 @@ public class CoopNetClient : MonoBehaviour
     
     public void SendClientStatus()
     {
-        if (!IsConnected) return;
+        if (!IsConnected || ServerPeer == null) return;
         
         var statusData = new ClientStatusData
         {
@@ -465,7 +465,7 @@ public class CoopNetClient : MonoBehaviour
     
     public void RequestFullSync()
     {
-        if (!IsConnected) return;
+        if (!IsConnected || ServerPeer == null) return;
         
         var request = new { type = "fullSyncRequest" };
         var json = JsonConvert.SerializeObject(request);
@@ -479,7 +479,7 @@ public class CoopNetClient : MonoBehaviour
     
     public void RequestServerLogo()
     {
-        if (!IsConnected) return;
+        if (!IsConnected || ServerPeer == null) return;
         
         Writer.Reset();
         Writer.Put((byte)110);
@@ -519,7 +519,7 @@ public class CoopNetClient : MonoBehaviour
     
     public void SendJson(object data)
     {
-        if (!IsConnected) return;
+        if (!IsConnected || ServerPeer == null) return;
         
         var json = JsonConvert.SerializeObject(data);
         Writer.Reset();
