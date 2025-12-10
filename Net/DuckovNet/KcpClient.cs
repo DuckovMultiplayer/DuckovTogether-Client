@@ -157,7 +157,7 @@ namespace DuckovNet
                     var data = _udp.Receive(ref endpoint);
                     if (data.Length < 1) continue;
                     
-                    if (!endpoint.Equals(_serverEndpoint)) continue;
+                    if (endpoint.Port != _serverEndpoint.Port) continue;
                     
                     _lastActivity = TickCount64;
                     ProcessPacket(data);
