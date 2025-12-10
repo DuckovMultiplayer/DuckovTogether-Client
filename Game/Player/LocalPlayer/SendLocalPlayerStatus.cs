@@ -112,7 +112,7 @@ public class SendLocalPlayerStatus : MonoBehaviour
 
     public void SendAnimationStatus()
     {
-        if (!networkStarted) return;
+        if (!networkStarted || localPlayerStatus == null) return;
 
         var mainControl = CharacterMainControl.Main;
         if (mainControl == null || mainControl.modelRoot == null) return;
