@@ -174,6 +174,8 @@ public class CoopNetClient : MonoBehaviour
             Debug.Log($"[CoopNet] Connected to server");
             OnConnected?.Invoke();
             
+            ShowSyncUI();
+            
             SendClientStatus();
             RequestFullSync();
             RequestServerLogo();
@@ -341,7 +343,26 @@ public class CoopNetClient : MonoBehaviour
         ServerGameTime = data.gameTime;
         ServerName = data.serverName;
         
+        UI.SyncStatusUI.Instance?.UpdateTask("serverState", $"Server: {data.serverName}", true);
+        
         OnServerStateReceived?.Invoke(data);
+    }
+    
+    private void ShowSyncUI()
+    {
+        var syncUI = UI.SyncStatusUI.Instance;
+        if (syncUI == null)
+        {
+            var go = new GameObject("SyncStatusUI");
+            syncUI = go.AddComponent<UI.SyncStatusUI>();
+        }
+        
+        syncUI.Show("Joining Server...");
+        syncUI.RegisterTask("serverState", "Server State");
+        syncUI.RegisterTask("worldSync", "World Data");
+        syncUI.RegisterTask("buildings", "Buildings");
+        
+        syncUI.SetProgress(0.1f, "Connecting...");
     }
     
     public string ServerScene { get; private set; } = "";
@@ -358,6 +379,10 @@ public class CoopNetClient : MonoBehaviour
         if (data == null) return;
         
         Debug.Log($"[CoopNet] World sync received: buildings={data.buildings?.Count ?? 0}, loot={data.lootContainers?.Count ?? 0}, items={data.droppedItems?.Count ?? 0}");
+        
+        var buildingCount = data.buildings?.Count ?? 0;
+        UI.SyncStatusUI.Instance?.UpdateTask("worldSync", $"World data: {buildingCount} buildings", true);
+        UI.SyncStatusUI.Instance?.UpdateTask("buildings", $"Synced {buildingCount} buildings", true);
         
         OnWorldSyncReceived?.Invoke(data);
     }
