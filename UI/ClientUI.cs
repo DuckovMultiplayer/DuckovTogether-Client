@@ -769,6 +769,9 @@ public class ClientUI : MonoBehaviour
         var panelBg = _detailPanel.AddComponent<Image>();
         panelBg.color = UIColors.PanelBg;
         
+        var dragHandler = _detailPanel.AddComponent<UIDragHandler>();
+        dragHandler.Target = panelRect;
+        
         var layout = _detailPanel.AddComponent<VerticalLayoutGroup>();
         layout.padding = new RectOffset(15, 15, 15, 15);
         layout.spacing = 8;
