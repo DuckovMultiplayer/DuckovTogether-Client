@@ -704,11 +704,34 @@ public class ClientUI : MonoBehaviour
             catch { }
         }
         
+        var addressLabel = entry.transform.Find("Info/Address")?.GetComponent<TMP_Text>();
+        if (addressLabel != null)
+        {
+            var protoText = server.IsOnline && !string.IsNullOrEmpty(server.Protocol) ? $"{server.Key} | {server.Protocol}" : server.Key;
+            addressLabel.text = protoText;
+        }
+        
         var detailsLabel = entry.transform.Find("Info/Details")?.GetComponent<TMP_Text>();
         if (detailsLabel != null)
         {
             detailsLabel.text = server.IsOnline ? $"{server.PlayerCount}/{server.MaxPlayers} | {L("ui.server.plugins")}: {server.PluginCount}" : L("ui.status.offline");
             detailsLabel.color = server.IsOnline ? UIColors.Primary : UIColors.Error;
+        }
+        
+        var descLabel = entry.transform.Find("Info/DescPreview")?.GetComponent<TMP_Text>();
+        if (descLabel != null)
+        {
+            var descPreview = string.IsNullOrEmpty(server.Description) ? "" : (server.Description.Length > 30 ? server.Description.Substring(0, 30) + "..." : server.Description);
+            descLabel.text = descPreview;
+        }
+        else if (!string.IsNullOrEmpty(server.Description))
+        {
+            var infoContainer = entry.transform.Find("Info");
+            if (infoContainer != null)
+            {
+                var descPreview = server.Description.Length > 30 ? server.Description.Substring(0, 30) + "..." : server.Description;
+                CreateLabel("DescPreview", infoContainer, descPreview, 9, FontStyles.Italic, UIColors.TextSecondary);
+            }
         }
         
         var pingLabel = entry.transform.Find("Ping")?.GetComponent<TMP_Text>();
