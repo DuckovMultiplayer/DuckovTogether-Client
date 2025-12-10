@@ -296,6 +296,18 @@ public class CoopNetClient : MonoBehaviour
                 case "delta_sync":
                     HandleDeltaSync(json);
                     break;
+                case "buildingPlaced":
+                    Game.Building.BuildingSync.Instance.Client_OnBuildingPlaced(json);
+                    break;
+                case "buildingDestroyed":
+                    Game.Building.BuildingSync.Instance.Client_OnBuildingDestroyed(json);
+                    break;
+                case "buildingUpgraded":
+                    Game.Building.BuildingSync.Instance.Client_OnBuildingUpgraded(json);
+                    break;
+                case "buildingFullSync":
+                    Game.Building.BuildingSync.Instance.Client_OnBuildingFullSync(json);
+                    break;
                 default:
                     OnMessageReceived?.Invoke(baseMsg.type, null);
                     break;

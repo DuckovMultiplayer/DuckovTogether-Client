@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace EscapeFromDuckovCoopMod.Net;
 
@@ -64,18 +65,25 @@ public class ClientWorldManager : MonoBehaviour
     {
         Debug.Log($"[ClientWorld] Applying world sync: buildings={data.buildings?.Count ?? 0}");
         
-        if (data.buildings != null)
+        if (data.buildings != null && data.buildings.Count > 0)
         {
-            foreach (var b in data.buildings)
-            {
-                ApplyBuilding(b);
-            }
+            var fullSyncJson = Newtonsoft.Json.JsonConvert.SerializeObject(new {
+                type = "buildingFullSync",
+                buildings = data.buildings.Select(b => new {
+                    buildingId = b.id,
+                    buildingType = b.buildingType,
+                    ownerId = b.ownerId,
+                    posX = b.posX, posY = b.posY, posZ = b.posZ,
+                    rotX = b.rotX, rotY = b.rotY, rotZ = b.rotZ,
+                    level = b.level,
+                    timestamp = 0L,
+                    isDestroyed = false
+                }).ToArray(),
+                timestamp = System.DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            });
+            
+            Game.Building.BuildingSync.Instance.Client_OnBuildingFullSync(fullSyncJson);
         }
-    }
-    
-    private void ApplyBuilding(BuildingSyncEntry b)
-    {
-        Debug.Log($"[ClientWorld] Building: {b.id} type={b.buildingType} pos=({b.posX},{b.posY},{b.posZ})");
     }
     
     private string FindGameScene()
