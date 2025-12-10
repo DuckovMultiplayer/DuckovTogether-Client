@@ -624,6 +624,9 @@ public class ClientUI : MonoBehaviour
         CreateLabel("Address", infoContainer.transform, protoText, 10, FontStyles.Normal, UIColors.TextSecondary);
         var detailText = server.IsOnline ? $"{server.PlayerCount}/{server.MaxPlayers} | {L("ui.server.plugins")}: {server.PluginCount}" : L("ui.status.offline");
         CreateLabel("Details", infoContainer.transform, detailText, 10, FontStyles.Normal, server.IsOnline ? UIColors.Primary : UIColors.Error);
+        var descPreview = string.IsNullOrEmpty(server.Description) ? "" : (server.Description.Length > 30 ? server.Description.Substring(0, 30) + "..." : server.Description);
+        if (!string.IsNullOrEmpty(descPreview))
+            CreateLabel("DescPreview", infoContainer.transform, descPreview, 9, FontStyles.Italic, UIColors.TextSecondary);
         
         var pingLabel = CreateLabel("Ping", entry.transform, server.IsOnline && server.Ping >= 0 ? $"{server.Ping}ms" : "-", 11, FontStyles.Normal, GetPingColor(server.Ping));
         pingLabel.gameObject.AddComponent<LayoutElement>().preferredWidth = 40;
@@ -737,7 +740,7 @@ public class ClientUI : MonoBehaviour
         var panelRect = _detailPanel.AddComponent<RectTransform>();
         panelRect.anchorMin = new Vector2(0.5f, 0.5f);
         panelRect.anchorMax = new Vector2(0.5f, 0.5f);
-        panelRect.sizeDelta = new Vector2(400, 350);
+        panelRect.sizeDelta = new Vector2(420, 420);
         panelRect.anchoredPosition = Vector2.zero;
         
         var panelBg = _detailPanel.AddComponent<Image>();
@@ -759,6 +762,30 @@ public class ClientUI : MonoBehaviour
         spacer.transform.SetParent(header.transform, false);
         spacer.AddComponent<LayoutElement>().flexibleWidth = 1;
         CreateButtonWithRef("Close", header.transform, "×", UIColors.Error, () => { if (_detailPanel != null) Destroy(_detailPanel); }, 30, 25, 14);
+        
+        if (server.LogoData != null && server.LogoData.Length > 0)
+        {
+            var logoContainer = new GameObject("LogoContainer");
+            logoContainer.transform.SetParent(_detailPanel.transform, false);
+            var logoLE = logoContainer.AddComponent<LayoutElement>();
+            logoLE.preferredHeight = 80;
+            logoLE.preferredWidth = 150;
+            var logoImage = logoContainer.AddComponent<Image>();
+            logoImage.color = new Color(0.2f, 0.2f, 0.25f, 1f);
+            logoImage.preserveAspect = true;
+            
+            try
+            {
+                var texture = new Texture2D(2, 2);
+                if (texture.LoadImage(server.LogoData))
+                {
+                    var sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+                    logoImage.sprite = sprite;
+                    logoImage.color = Color.white;
+                }
+            }
+            catch { }
+        }
         
         CreateLabel("Protocol", _detailPanel.transform, $"Protocol: {server.Protocol ?? "Unknown"}", 12, FontStyles.Normal, UIColors.Primary);
         CreateLabel("Address", _detailPanel.transform, $"Address: {server.Key}", 11, FontStyles.Normal, UIColors.TextSecondary);
