@@ -60,7 +60,6 @@ public class CoopNetClient : MonoBehaviour
     
     private void Update()
     {
-        
         if (IsConnected)
         {
             _syncTimer += Time.deltaTime;

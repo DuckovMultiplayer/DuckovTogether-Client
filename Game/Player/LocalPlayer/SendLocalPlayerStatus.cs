@@ -115,7 +115,7 @@ public class SendLocalPlayerStatus : MonoBehaviour
         if (!networkStarted) return;
 
         var mainControl = CharacterMainControl.Main;
-        if (mainControl == null) return;
+        if (mainControl == null || mainControl.modelRoot == null) return;
 
         var model = mainControl.modelRoot.Find("0_CharacterModel_Custom_Template(Clone)");
         if (model == null) return;
