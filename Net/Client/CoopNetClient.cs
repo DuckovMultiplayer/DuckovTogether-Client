@@ -275,6 +275,9 @@ public class CoopNetClient : MonoBehaviour
                 case "setId":
                     HandleSetId(json);
                     break;
+                case "serverState":
+                    HandleServerState(json);
+                    break;
                 case "playerList":
                     HandlePlayerList(json);
                     break;
@@ -310,6 +313,28 @@ public class CoopNetClient : MonoBehaviour
             Debug.Log($"[CoopNet] Assigned network ID: {NetworkId}");
         }
     }
+    
+    private void HandleServerState(string json)
+    {
+        var data = JsonConvert.DeserializeObject<ServerStateData>(json);
+        if (data == null) return;
+        
+        Debug.Log($"[CoopNet] Server state received: scene={data.scene}, day={data.gameDay}, time={data.gameTime}");
+        
+        ServerScene = data.scene;
+        ServerGameDay = data.gameDay;
+        ServerGameTime = data.gameTime;
+        ServerName = data.serverName;
+        
+        OnServerStateReceived?.Invoke(data);
+    }
+    
+    public string ServerScene { get; private set; } = "";
+    public int ServerGameDay { get; private set; } = 1;
+    public float ServerGameTime { get; private set; } = 8f;
+    public string ServerName { get; private set; } = "";
+    
+    public event Action<ServerStateData> OnServerStateReceived;
     
     private void HandlePlayerList(string json)
     {
@@ -718,6 +743,18 @@ public class ClientStatusData
     public string playerName { get; set; } = "";
     public bool isInGame { get; set; }
     public string sceneId { get; set; } = "";
+}
+
+[Serializable]
+public class ServerStateData
+{
+    public string type { get; set; } = "serverState";
+    public string scene { get; set; } = "";
+    public float gameTime { get; set; } = 8f;
+    public int gameDay { get; set; } = 1;
+    public string serverName { get; set; } = "";
+    public int maxPlayers { get; set; } = 10;
+    public int playerCount { get; set; } = 0;
 }
 
 [Serializable]
