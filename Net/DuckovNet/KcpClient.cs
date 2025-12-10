@@ -157,8 +157,6 @@ namespace DuckovNet
                     var data = _udp.Receive(ref endpoint);
                     if (data.Length < 1) continue;
                     
-                    Console.WriteLine($"[KcpClient] Received {data.Length} bytes from {endpoint}, msgType={data[0]}, serverPort={_serverEndpoint.Port}");
-                    
                     if (endpoint.Port != _serverEndpoint.Port) continue;
                     
                     _lastActivity = TickCount64;
