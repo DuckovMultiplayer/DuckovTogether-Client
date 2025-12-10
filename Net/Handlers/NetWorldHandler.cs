@@ -35,6 +35,12 @@ public class ClientWorldManager : MonoBehaviour
         RegisterEvents();
         SceneManager.sceneLoaded += OnSceneLoaded;
         
+        if (CoopNetClient.Instance != null)
+        {
+            CoopNetClient.Instance.OnWorldSyncReceived += OnWorldSyncReceived;
+            CoopNetClient.Instance.OnServerStateReceived += OnServerStateReceived;
+        }
+        
         var gameScene = FindGameScene();
         if (!string.IsNullOrEmpty(gameScene))
         {
@@ -47,6 +53,29 @@ public class ClientWorldManager : MonoBehaviour
                 Debug.Log($"[ClientWorld] Already in scene: {CurrentSceneId}, IsInGame=true");
             }
         }
+    }
+    
+    private void OnServerStateReceived(ServerStateData data)
+    {
+        Debug.Log($"[ClientWorld] Server state: scene={data.scene}, day={data.gameDay}, time={data.gameTime}");
+    }
+    
+    private void OnWorldSyncReceived(WorldSyncData data)
+    {
+        Debug.Log($"[ClientWorld] Applying world sync: buildings={data.buildings?.Count ?? 0}");
+        
+        if (data.buildings != null)
+        {
+            foreach (var b in data.buildings)
+            {
+                ApplyBuilding(b);
+            }
+        }
+    }
+    
+    private void ApplyBuilding(BuildingSyncEntry b)
+    {
+        Debug.Log($"[ClientWorld] Building: {b.id} type={b.buildingType} pos=({b.posX},{b.posY},{b.posZ})");
     }
     
     private string FindGameScene()
