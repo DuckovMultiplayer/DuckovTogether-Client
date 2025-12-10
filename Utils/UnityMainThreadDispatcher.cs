@@ -29,6 +29,11 @@ namespace EscapeFromDuckovCoopMod
             _actionQueue.Enqueue(action);
         }
         
+        public static void EnsureInitialized()
+        {
+            var _ = Instance;
+        }
+        
         private void Update()
         {
             while (_actionQueue.TryDequeue(out var action))

@@ -98,6 +98,8 @@ public class CoopNetClient : MonoBehaviour
     {
         if (IsConnecting || IsConnected) return;
         
+        UnityMainThreadDispatcher.EnsureInitialized();
+        
         ServerAddress = address;
         ServerPort = port;
         IsConnecting = true;
