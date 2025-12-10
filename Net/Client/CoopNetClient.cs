@@ -56,6 +56,12 @@ public class CoopNetClient : MonoBehaviour
         
         Writer = new NetDataWriter();
         LocalPlayer = new LocalPlayerState();
+        
+        if (ClientWorldManager.Instance == null)
+        {
+            var worldGo = new GameObject("ClientWorldManager");
+            worldGo.AddComponent<ClientWorldManager>();
+        }
     }
     
     private void Update()
