@@ -35,10 +35,10 @@ public class ClientWorldManager : MonoBehaviour
         RegisterEvents();
         SceneManager.sceneLoaded += OnSceneLoaded;
         
-        var activeScene = SceneManager.GetActiveScene();
-        if (activeScene.isLoaded && !string.IsNullOrEmpty(activeScene.name) && activeScene.name != "MainMenu")
+        var gameScene = FindGameScene();
+        if (!string.IsNullOrEmpty(gameScene))
         {
-            CurrentSceneId = activeScene.name;
+            CurrentSceneId = gameScene;
             var client = DuckovTogetherClient.Instance;
             if (client?.LocalPlayer != null)
             {
@@ -47,6 +47,50 @@ public class ClientWorldManager : MonoBehaviour
                 Debug.Log($"[ClientWorld] Already in scene: {CurrentSceneId}, IsInGame=true");
             }
         }
+    }
+    
+    private string FindGameScene()
+    {
+        var excludeScenes = new[] { "MainMenu", "Startup", "LoadingScreen", "LoadingScreen_Black", "Base", "DontDestroyOnLoad" };
+        
+        for (int i = 0; i < SceneManager.sceneCount; i++)
+        {
+            var scene = SceneManager.GetSceneAt(i);
+            if (scene.isLoaded && !string.IsNullOrEmpty(scene.name))
+            {
+                bool isExcluded = false;
+                foreach (var ex in excludeScenes)
+                {
+                    if (scene.name.Contains(ex) || scene.name == ex)
+                    {
+                        isExcluded = true;
+                        break;
+                    }
+                }
+                
+                if (!isExcluded && (scene.name.Contains("Level") || scene.name.Contains("Scene")))
+                {
+                    return scene.name;
+                }
+            }
+        }
+        
+        var active = SceneManager.GetActiveScene();
+        if (active.isLoaded && !string.IsNullOrEmpty(active.name))
+        {
+            bool isExcluded = false;
+            foreach (var ex in excludeScenes)
+            {
+                if (active.name.Contains(ex) || active.name == ex)
+                {
+                    isExcluded = true;
+                    break;
+                }
+            }
+            if (!isExcluded) return active.name;
+        }
+        
+        return "";
     }
     
     private void Update()
@@ -62,8 +106,17 @@ public class ClientWorldManager : MonoBehaviour
     
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        CurrentSceneId = scene.name;
         _isLoadingScene = false;
+        
+        var gameScene = FindGameScene();
+        if (!string.IsNullOrEmpty(gameScene))
+        {
+            CurrentSceneId = gameScene;
+        }
+        else
+        {
+            CurrentSceneId = scene.name;
+        }
         
         SyncAllDoors();
         SyncAllSwitches();
@@ -71,7 +124,7 @@ public class ClientWorldManager : MonoBehaviour
         ApplyWeather();
         
         var client = DuckovTogetherClient.Instance;
-        if (client != null)
+        if (client?.LocalPlayer != null)
         {
             client.LocalPlayer.SceneId = CurrentSceneId;
             client.LocalPlayer.IsInGame = true;
