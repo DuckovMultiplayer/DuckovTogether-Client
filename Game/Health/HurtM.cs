@@ -69,14 +69,10 @@ public class HurtM
         if (!networkStarted || IsServer || connectedPeer == null) return;
 
         var w = new NetDataWriter();
+        w.Put((byte)41);
         w.Put(id);
-
+        w.Put(dmg.damageValue);
         
-        w.PutDamagePayload(
-            dmg.damageValue, dmg.armorPiercing, dmg.critDamageFactor, dmg.critRate, dmg.crit,
-            dmg.damagePoint, dmg.damageNormal, dmg.fromWeaponItemID, dmg.bleedChance, dmg.isExplosion,
-            0f
-        );
         connectedPeer.Send(w, DeliveryMethod.ReliableOrdered);
     }
 }

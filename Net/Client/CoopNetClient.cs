@@ -259,6 +259,9 @@ public class CoopNetClient : MonoBehaviour
             case 9:
                 ProcessJsonMessage(reader);
                 break;
+            case 41:
+                ProcessDestructibleHurt(reader);
+                break;
             case 111:
                 ProcessServerLogo(reader);
                 break;
@@ -395,6 +398,27 @@ public class CoopNetClient : MonoBehaviour
         UI.SyncStatusUI.Instance?.UpdateTask("buildings", $"Synced {buildingCount} buildings", true);
         
         OnWorldSyncReceived?.Invoke(data);
+    }
+    
+    private void ProcessDestructibleHurt(NetPacketReader reader)
+    {
+        try
+        {
+            var objectId = reader.GetUInt();
+            var damage = reader.GetFloat();
+            var attackerId = reader.GetInt();
+            
+            var hs = COOPManager.destructible.FindDestructible(objectId);
+            if (hs != null)
+            {
+                var info = new DamageInfo { damageValue = damage };
+                hs.dmgReceiver.Hurt(info);
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[CoopNet] ProcessDestructibleHurt error: {ex.Message}");
+        }
     }
     
     private void HandlePlayerList(string json)
