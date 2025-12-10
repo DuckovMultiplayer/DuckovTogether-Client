@@ -207,6 +207,11 @@ public class CoopNetClient : MonoBehaviour
             var reader = new NetPacketReader(data);
             var msgType = reader.PeekByte();
             
+            if (msgType == 9)
+            {
+                Debug.Log($"[CoopNet] Received JSON message, length={data.Length}");
+            }
+            
             try
             {
                 ProcessMessage(msgType, reader);
@@ -271,6 +276,11 @@ public class CoopNetClient : MonoBehaviour
         {
             var baseMsg = JsonConvert.DeserializeObject<BaseJsonMessage>(json);
             if (baseMsg == null) return;
+            
+            if (baseMsg.type == "serverState" || baseMsg.type == "worldSync")
+            {
+                Debug.Log($"[CoopNet] Received important message: {baseMsg.type}");
+            }
             
             switch (baseMsg.type)
             {
