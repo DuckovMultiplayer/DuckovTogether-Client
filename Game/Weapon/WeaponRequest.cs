@@ -39,7 +39,7 @@ public class WeaponRequest
     
     public void Net_OnClientShoot(ItemAgent_Gun gun, Vector3 muzzle, Vector3 baseDir, Vector3 firstCheckStart)
     {
-        if (IsServer || connectedPeer == null) return;
+        if (IsServer || connectedPeer == null || localPlayerStatus == null || writer == null || gun == null || gun.Item == null) return;
 
         if (baseDir.sqrMagnitude < 1e-8f)
         {
