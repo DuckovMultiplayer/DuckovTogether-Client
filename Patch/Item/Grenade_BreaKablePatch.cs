@@ -190,21 +190,13 @@ public static class Patch_Grenade_Sync
     private static void Grenade_Explode_Prefix(Grenade __instance, ref bool __state)
     {
         __state = __instance.createExplosion;
-        var mod = ModBehaviourF.Instance;
-        if (mod != null && mod.networkStarted && !mod.IsServer)
-        {
-            var isNetworkGrenade = __instance && __instance.GetComponent<NetGrenadeTag>() != null;
-            if (!isNetworkGrenade)
-                __instance.createExplosion = false;
-        }
     }
 
     [HarmonyPostfix]
     [HarmonyPatch(typeof(Grenade), "Explode")]
     private static void Grenade_Explode_Postfix(Grenade __instance, bool __state)
     {
-        var mod = ModBehaviourF.Instance;
-        if (mod != null && mod.networkStarted && !mod.IsServer) __instance.createExplosion = __state;
+        __instance.createExplosion = __state;
     }
 
     [HarmonyPostfix]
