@@ -326,6 +326,12 @@ public class CoopNetClient : MonoBehaviour
                 case "buildingFullSync":
                     Game.Building.BuildingSync.Instance.Client_OnBuildingFullSync(json);
                     break;
+                case "sceneVote":
+                    HandleSceneVote(json);
+                    break;
+                case "forceSceneLoad":
+                    HandleForceSceneLoad(json);
+                    break;
                 default:
                     OnMessageReceived?.Invoke(baseMsg.type, null);
                     break;
@@ -552,6 +558,95 @@ public class CoopNetClient : MonoBehaviour
         {
             RemotePlayers.Remove(data.peerId.ToString());
         }
+    }
+    
+    private void HandleSceneVote(string json)
+    {
+        try
+        {
+            var data = JsonConvert.DeserializeObject<SceneVoteData>(json);
+            if (data == null) return;
+            
+            var sceneNet = SceneNet.Instance;
+            if (sceneNet == null) return;
+            
+            if (string.IsNullOrEmpty(data.targetScene))
+            {
+                sceneNet.sceneVoteActive = false;
+                sceneNet.sceneReady.Clear();
+                Debug.Log("[CoopNet] Vote cancelled by server");
+                return;
+            }
+            
+            sceneNet.sceneVoteActive = true;
+            sceneNet.sceneTargetId = data.targetScene;
+            sceneNet.sceneReady.Clear();
+            
+            if (data.votes != null)
+            {
+                foreach (var v in data.votes)
+                {
+                    sceneNet.sceneReady[v.playerId] = v.ready;
+                }
+            }
+            
+            Debug.Log($"[CoopNet] Vote state: {data.targetScene}, {data.votes?.Count ?? 0} votes");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[CoopNet] HandleSceneVote error: {ex.Message}");
+        }
+    }
+    
+    private void HandleForceSceneLoad(string json)
+    {
+        try
+        {
+            var data = JsonConvert.DeserializeObject<ForceSceneLoadData>(json);
+            if (data == null || string.IsNullOrEmpty(data.sceneId)) return;
+            
+            Debug.Log($"[CoopNet] Force scene load: {data.sceneId}");
+            
+            var sceneNet = SceneNet.Instance;
+            if (sceneNet != null)
+            {
+                sceneNet.sceneVoteActive = false;
+                sceneNet._cliSceneGateReleased = true;
+                sceneNet._cliGateSid = data.sceneId;
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[CoopNet] HandleForceSceneLoad error: {ex.Message}");
+        }
+    }
+    
+    public void SendVoteRequest(string targetSceneId)
+    {
+        if (ServerPeer == null) return;
+        
+        var data = new { type = "sceneVoteRequest", targetScene = targetSceneId };
+        var json = JsonConvert.SerializeObject(data);
+        
+        var w = new NetDataWriter();
+        w.Put((byte)9);
+        w.Put(json);
+        ServerPeer.Send(w, DeliveryMethod.ReliableOrdered);
+        Debug.Log($"[CoopNet] Sent vote request: {targetSceneId}");
+    }
+    
+    public void SendVoteReady(bool ready)
+    {
+        if (ServerPeer == null) return;
+        
+        var data = new { type = "sceneVoteReady", ready = ready };
+        var json = JsonConvert.SerializeObject(data);
+        
+        var w = new NetDataWriter();
+        w.Put((byte)9);
+        w.Put(json);
+        ServerPeer.Send(w, DeliveryMethod.ReliableOrdered);
+        Debug.Log($"[CoopNet] Sent vote ready: {ready}");
     }
     
     private void HandleDeltaSync(string json)
@@ -976,4 +1071,27 @@ public class AIDeltaEntry
     public float health { get; set; }
     public bool hasState { get; set; }
     public int state { get; set; }
+}
+
+[Serializable]
+public class SceneVoteData
+{
+    public string type { get; set; }
+    public string targetScene { get; set; }
+    public List<VoteEntry> votes { get; set; }
+}
+
+[Serializable]
+public class VoteEntry
+{
+    public string playerId { get; set; }
+    public bool ready { get; set; }
+}
+
+[Serializable]
+public class ForceSceneLoadData
+{
+    public string type { get; set; }
+    public string sceneId { get; set; }
+    public string timestamp { get; set; }
 }
