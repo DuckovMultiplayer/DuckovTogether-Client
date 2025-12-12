@@ -58,6 +58,8 @@ public static class Patch_HSB_OnHurt_RedirectNet
     {
         var mod = ModBehaviourF.Instance;
         if (mod == null || !mod.networkStarted) return true;
+        
+        if (Destructible.IsRemoteHurt) return true;
 
         LocalHitKillFx.ClientPlayForDestructible(__instance, dmgInfo, false);
 

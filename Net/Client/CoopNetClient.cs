@@ -411,8 +411,16 @@ public class CoopNetClient : MonoBehaviour
             var hs = COOPManager.destructible.FindDestructible(objectId);
             if (hs != null)
             {
-                var info = new DamageInfo { damageValue = damage };
-                hs.dmgReceiver.Hurt(info);
+                Destructible.IsRemoteHurt = true;
+                try
+                {
+                    var info = new DamageInfo { damageValue = damage };
+                    hs.dmgReceiver.Hurt(info);
+                }
+                finally
+                {
+                    Destructible.IsRemoteHurt = false;
+                }
             }
         }
         catch (System.Exception ex)

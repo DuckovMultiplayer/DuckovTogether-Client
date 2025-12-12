@@ -24,6 +24,8 @@ namespace EscapeFromDuckovCoopMod;
 
 public class Destructible
 {
+    public static bool IsRemoteHurt { get; set; } = false;
+
     private readonly Dictionary<uint, HealthSimpleBase> _clientDestructibles = new();
 
 
