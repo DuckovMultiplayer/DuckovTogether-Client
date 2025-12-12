@@ -61,7 +61,9 @@ public class GrenadeM
         }
     }
 
-    
+    /// <summary>
+    ///     Send grenade throw request to server.
+    /// </summary>
     public void Net_OnClientThrow(
         Skill_Grenade skill, int typeId, string prefabType, string prefabName,
         Vector3 startPoint, Vector3 velocity,
@@ -70,6 +72,7 @@ public class GrenadeM
     {
         if (IsServer || connectedPeer == null) return;
         writer.Reset();
+        writer.Put((byte)33);
         writer.Put("local"); 
         writer.Put(typeId);
         writer.Put(prefabType ?? string.Empty);
