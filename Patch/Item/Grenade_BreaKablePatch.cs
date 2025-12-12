@@ -146,10 +146,9 @@ public static class Patch_Grenade_Sync
             var isLandmine = __instance.isLandmine;
             var landmineRange = __instance.landmineTriggerRange;
 
-            // 只发请求，不本地生成
             COOPManager.GrenadeM.Net_OnClientThrow(__instance, typeId2, prefabType, prefabName, position, velocity,
                 createExplosion, shake, damageRange, delayFromCollide, delayTime, isLandmine, landmineRange);
-            return false;
+            return true;
         }
         catch (Exception e)
         {
