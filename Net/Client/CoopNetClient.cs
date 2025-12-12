@@ -259,6 +259,9 @@ public class CoopNetClient : MonoBehaviour
             case 9:
                 ProcessJsonMessage(reader);
                 break;
+            case 33:
+                ProcessGrenadeThrow(reader);
+                break;
             case 41:
                 ProcessDestructibleHurt(reader);
                 break;
@@ -426,6 +429,42 @@ public class CoopNetClient : MonoBehaviour
         catch (System.Exception ex)
         {
             Debug.LogError($"[CoopNet] ProcessDestructibleHurt error: {ex.Message}");
+        }
+    }
+    
+    private void ProcessGrenadeThrow(NetPacketReader reader)
+    {
+        try
+        {
+            var throwerId = reader.GetString();
+            var typeId = reader.GetInt();
+            var prefabType = reader.GetString();
+            var prefabName = reader.GetString();
+            var startX = reader.GetInt();
+            var startY = reader.GetInt();
+            var startZ = reader.GetInt();
+            var velX = reader.GetInt();
+            var velY = reader.GetInt();
+            var velZ = reader.GetInt();
+            var createExplosion = reader.GetBool();
+            var shake = reader.GetFloat();
+            var damageRange = reader.GetFloat();
+            var delayFromCollide = reader.GetBool();
+            var delayTime = reader.GetFloat();
+            var isLandmine = reader.GetBool();
+            var landmineRange = reader.GetFloat();
+            
+            var start = new Vector3(startX / 100f, startY / 100f, startZ / 100f);
+            var vel = new Vector3(velX / 100f, velY / 100f, velZ / 100f);
+            
+            COOPManager.GrenadeM?.SpawnRemoteGrenade(
+                typeId, start, vel, createExplosion, shake, damageRange,
+                delayFromCollide, delayTime, isLandmine, landmineRange
+            );
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[CoopNet] ProcessGrenadeThrow error: {ex.Message}");
         }
     }
     

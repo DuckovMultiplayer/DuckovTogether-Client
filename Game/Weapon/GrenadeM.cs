@@ -162,9 +162,6 @@ public class GrenadeM
         g.landmineTriggerRange = mineRange;
         g.SetWeaponIdInfo(typeId);
         g.Launch(start, vel, null, true);
-        AddNetGrenadeTag(g.gameObject, id);
-
-        clientGrenades[id] = g.gameObject;
     }
 
     
@@ -525,5 +522,54 @@ public class GrenadeM
         public bool isMine;
         public float mineRange;
         public float expireAt;
+    }
+    
+    public void SpawnRemoteGrenade(
+        int typeId, Vector3 start, Vector3 vel,
+        bool create, float shake, float dmg, bool delayOnHit, float delay,
+        bool isMine, float mineRange)
+    {
+        if (prefabByTypeId.TryGetValue(typeId, out var prefab) && prefab)
+        {
+            var g = GameObject.Instantiate(prefab, start, Quaternion.identity);
+            g.createExplosion = create;
+            g.explosionShakeStrength = shake;
+            g.damageRange = dmg;
+            g.delayFromCollide = delayOnHit;
+            g.delayTime = delay;
+            g.isLandmine = isMine;
+            g.landmineTriggerRange = mineRange;
+            g.SetWeaponIdInfo(typeId);
+            g.Launch(start, vel, null, true);
+            return;
+        }
+        
+        SpawnRemoteGrenadeAsync(typeId, start, vel, create, shake, dmg, delayOnHit, delay, isMine, mineRange).Forget();
+    }
+    
+    private async UniTask SpawnRemoteGrenadeAsync(
+        int typeId, Vector3 start, Vector3 vel,
+        bool create, float shake, float dmg, bool delayOnHit, float delay,
+        bool isMine, float mineRange)
+    {
+        var prefab = await COOPManager.GetGrenadePrefabByItemIdAsync(typeId);
+        if (!prefab)
+        {
+            Debug.LogError($"[CLIENT] remote grenade prefab resolve failed: typeId={typeId}");
+            return;
+        }
+        
+        CoopTool.CacheGrenadePrefab(typeId, prefab);
+        
+        var g = GameObject.Instantiate(prefab, start, Quaternion.identity);
+        g.createExplosion = create;
+        g.explosionShakeStrength = shake;
+        g.damageRange = dmg;
+        g.delayFromCollide = delayOnHit;
+        g.delayTime = delay;
+        g.isLandmine = isMine;
+        g.landmineTriggerRange = mineRange;
+        g.SetWeaponIdInfo(typeId);
+        g.Launch(start, vel, null, true);
     }
 }
