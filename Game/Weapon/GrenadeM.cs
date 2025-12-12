@@ -534,7 +534,7 @@ public class GrenadeM
             var g = GameObject.Instantiate(prefab, start, Quaternion.identity);
             g.createExplosion = create;
             g.explosionShakeStrength = shake;
-            g.damageRange = dmg;
+            g.damageRange = 0f;
             g.delayFromCollide = delayOnHit;
             g.delayTime = delay;
             g.isLandmine = isMine;
@@ -564,7 +564,7 @@ public class GrenadeM
         var g = GameObject.Instantiate(prefab, start, Quaternion.identity);
         g.createExplosion = create;
         g.explosionShakeStrength = shake;
-        g.damageRange = dmg;
+        g.damageRange = 0f;
         g.delayFromCollide = delayOnHit;
         g.delayTime = delay;
         g.isLandmine = isMine;
