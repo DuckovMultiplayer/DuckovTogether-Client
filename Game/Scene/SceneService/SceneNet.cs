@@ -844,13 +844,13 @@ public class SceneNet : MonoBehaviour
     {
         if (!networkStarted || IsServer || connectedPeer == null) return;
 
-        
-        var voteReqMsg = new Net.HybridNet.SceneVoteRequestMessage
-        {
-            PlayerId = localPlayerStatus?.EndPoint ?? "",
-            TargetSceneId = targetId
-        };
-        Net.HybridNet.HybridNetCore.Send(voteReqMsg, connectedPeer);
+        var data = new { type = "sceneVoteRequest", targetScene = targetId };
+        var json = Newtonsoft.Json.JsonConvert.SerializeObject(data);
+        var w = new DuckovNet.NetDataWriter();
+        w.Put((byte)9);
+        w.Put(json);
+        connectedPeer.Send(w, DuckovNet.DeliveryMethod.ReliableOrdered);
+        Debug.Log($"[SceneNet] Sent vote request to server: {targetId}");
     }
 
     public UniTask AppendSceneGate(UniTask original)
