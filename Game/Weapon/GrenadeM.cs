@@ -531,26 +531,22 @@ public class GrenadeM
     {
         if (prefabByTypeId.TryGetValue(typeId, out var prefab) && prefab)
         {
-            var g = GameObject.Instantiate(prefab, start, Quaternion.identity);
-            g.createExplosion = create;
-            g.explosionShakeStrength = shake;
-            g.damageRange = 0f;
-            g.delayFromCollide = delayOnHit;
-            g.delayTime = delay;
-            g.isLandmine = isMine;
-            g.landmineTriggerRange = mineRange;
-            g.SetWeaponIdInfo(typeId);
-            g.Launch(start, vel, null, true);
+            SpawnGrenadeFromPrefab(prefab, typeId, start, vel);
             return;
         }
         
-        SpawnRemoteGrenadeAsync(typeId, start, vel, create, shake, dmg, delayOnHit, delay, isMine, mineRange).Forget();
+        SpawnRemoteGrenadeAsync(typeId, start, vel).Forget();
     }
     
-    private async UniTask SpawnRemoteGrenadeAsync(
-        int typeId, Vector3 start, Vector3 vel,
-        bool create, float shake, float dmg, bool delayOnHit, float delay,
-        bool isMine, float mineRange)
+    private void SpawnGrenadeFromPrefab(Grenade prefab, int typeId, Vector3 start, Vector3 vel)
+    {
+        var g = GameObject.Instantiate(prefab, start, Quaternion.identity);
+        g.SetWeaponIdInfo(typeId);
+        g.Launch(start, vel, null, true);
+        Debug.Log($"[GRENADE] Spawned remote grenade typeId={typeId}, prefab={prefab.name}");
+    }
+    
+    private async UniTask SpawnRemoteGrenadeAsync(int typeId, Vector3 start, Vector3 vel)
     {
         var prefab = await COOPManager.GetGrenadePrefabByItemIdAsync(typeId);
         if (!prefab)
@@ -560,16 +556,6 @@ public class GrenadeM
         }
         
         CoopTool.CacheGrenadePrefab(typeId, prefab);
-        
-        var g = GameObject.Instantiate(prefab, start, Quaternion.identity);
-        g.createExplosion = create;
-        g.explosionShakeStrength = shake;
-        g.damageRange = 0f;
-        g.delayFromCollide = delayOnHit;
-        g.delayTime = delay;
-        g.isLandmine = isMine;
-        g.landmineTriggerRange = mineRange;
-        g.SetWeaponIdInfo(typeId);
-        g.Launch(start, vel, null, true);
+        SpawnGrenadeFromPrefab(prefab, typeId, start, vel);
     }
 }
