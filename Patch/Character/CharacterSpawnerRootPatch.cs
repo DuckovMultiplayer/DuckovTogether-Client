@@ -20,25 +20,28 @@ internal static class Patch_Root_StartSpawn
         try
         {
             var mod = ModBehaviourF.Instance;
+            if (mod == null || !mod.networkStarted) return true;
+            
             var rootId = AITool.StableRootId(__instance);
 
-            if (!mod.IsServer)
+            if (mod.IsServer)
             {
-                return false;
+                var useSeed = AITool.DeriveSeed(COOPManager.AIHandle.sceneSeed, rootId);
+                _rngStack.Push(Random.state);
+                Random.InitState(useSeed);
+                return true;
             }
 
-            // 核心科技:) 种子未到 → 阻止原版生成，并排队等待；到种子后再反射调用 StartSpawn()
-            if (!mod.IsServer && !COOPManager.AIHandle.aiRootSeeds.ContainsKey(rootId))
+            if (!COOPManager.AIHandle.aiRootSeeds.ContainsKey(rootId))
             {
                 if (_waiting.Add(rootId))
                     __instance.StartCoroutine(WaitSeedAndSpawn(__instance, rootId));
                 return false;
             }
 
-            // 进入“随机数种子作用域”
-            var useSeed = mod.IsServer ? AITool.DeriveSeed(COOPManager.AIHandle.sceneSeed, rootId) : COOPManager.AIHandle.aiRootSeeds[rootId];
+            var clientSeed = COOPManager.AIHandle.aiRootSeeds[rootId];
             _rngStack.Push(Random.state);
-            Random.InitState(useSeed);
+            Random.InitState(clientSeed);
             return true;
         }
         catch
