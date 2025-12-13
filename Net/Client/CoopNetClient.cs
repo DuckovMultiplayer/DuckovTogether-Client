@@ -586,11 +586,12 @@ public class CoopNetClient : MonoBehaviour
             sceneNet.sceneTargetId = targetScene;
             sceneNet.sceneReady.Clear();
             
-            if (data.playerList?.items != null)
+            if (data.playerList?.items != null && data.playerList.items.Length > 0)
             {
                 foreach (var p in data.playerList.items)
                 {
-                    sceneNet.sceneReady[p.playerId] = p.ready;
+                    if (!string.IsNullOrEmpty(p.playerId))
+                        sceneNet.sceneReady[p.playerId] = p.ready;
                 }
             }
             else if (data.votes != null)
@@ -1093,20 +1094,20 @@ public class SceneVoteData
     public bool active { get; set; }
     public int voteId { get; set; }
     public string hostSceneId { get; set; }
-    public PlayerListData playerList { get; set; }
+    public SceneVotePlayerList playerList { get; set; }
     public int totalPlayers { get; set; }
     public int readyPlayers { get; set; }
     public List<VoteEntry> votes { get; set; }
 }
 
 [Serializable]
-public class PlayerListData
+public class SceneVotePlayerList
 {
-    public PlayerInfoData[] items { get; set; }
+    public SceneVotePlayerInfo[] items { get; set; }
 }
 
 [Serializable]
-public class PlayerInfoData
+public class SceneVotePlayerInfo
 {
     public string playerId { get; set; }
     public string playerName { get; set; }
