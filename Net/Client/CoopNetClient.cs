@@ -346,11 +346,23 @@ public class CoopNetClient : MonoBehaviour
     
     private void HandleSetId(string json)
     {
+        Debug.Log($"[CoopNet] HandleSetId called with json: {json}");
         var data = JsonConvert.DeserializeObject<SetIdData>(json);
         if (data != null)
         {
             NetworkId = data.networkId;
             Debug.Log($"[CoopNet] Assigned network ID: {NetworkId}");
+            
+            var service = ModBehaviourF.Instance;
+            if (service?.localPlayerStatus != null)
+            {
+                service.localPlayerStatus.EndPoint = NetworkId;
+                Debug.Log($"[CoopNet] Also updated localPlayerStatus.EndPoint: {NetworkId}");
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"[CoopNet] Failed to parse setId json");
         }
     }
     
