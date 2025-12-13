@@ -8,9 +8,13 @@ public partial class ModBehaviourF
     {
         if (string.IsNullOrEmpty(playerId)) return false;
         var myId = localPlayerStatus?.EndPoint;
-        if (!string.IsNullOrEmpty(myId) && playerId == myId) return true;
         var client = Net.CoopNetClient.Instance;
-        if (client != null && !string.IsNullOrEmpty(client.NetworkId) && playerId == client.NetworkId) return true;
+        var networkId = client?.NetworkId ?? "";
+        
+        UnityEngine.Debug.Log($"[IsSelfId] Check: playerId='{playerId}', myId='{myId}', networkId='{networkId}'");
+        
+        if (!string.IsNullOrEmpty(myId) && playerId == myId) return true;
+        if (!string.IsNullOrEmpty(networkId) && playerId == networkId) return true;
         return false;
     }
 
