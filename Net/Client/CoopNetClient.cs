@@ -564,6 +564,7 @@ public class CoopNetClient : MonoBehaviour
     {
         try
         {
+            Debug.Log($"[CoopNet] HandleSceneVote raw JSON: {json}");
             var data = JsonConvert.DeserializeObject<SceneVoteData>(json);
             if (data == null) return;
             
@@ -571,6 +572,7 @@ public class CoopNetClient : MonoBehaviour
             if (sceneNet == null) return;
             
             var targetScene = !string.IsNullOrEmpty(data.targetSceneId) ? data.targetSceneId : data.targetScene;
+            Debug.Log($"[CoopNet] Vote parsed: targetSceneId={data.targetSceneId}, active={data.active}, targetScene={targetScene}");
             
             if (!data.active || string.IsNullOrEmpty(targetScene))
             {
