@@ -584,6 +584,7 @@ public class CoopNetClient : MonoBehaviour
             
             sceneNet.sceneVoteActive = true;
             sceneNet.sceneTargetId = targetScene;
+            sceneNet.sceneParticipantIds.Clear();
             sceneNet.sceneReady.Clear();
             
             if (data.playerList?.items != null && data.playerList.items.Length > 0)
@@ -591,16 +592,27 @@ public class CoopNetClient : MonoBehaviour
                 foreach (var p in data.playerList.items)
                 {
                     if (!string.IsNullOrEmpty(p.playerId))
+                    {
+                        if (!sceneNet.sceneParticipantIds.Contains(p.playerId))
+                            sceneNet.sceneParticipantIds.Add(p.playerId);
                         sceneNet.sceneReady[p.playerId] = p.ready;
+                    }
                 }
             }
             else if (data.votes != null)
             {
                 foreach (var v in data.votes)
                 {
-                    sceneNet.sceneReady[v.playerId] = v.ready;
+                    if (!string.IsNullOrEmpty(v.playerId))
+                    {
+                        if (!sceneNet.sceneParticipantIds.Contains(v.playerId))
+                            sceneNet.sceneParticipantIds.Add(v.playerId);
+                        sceneNet.sceneReady[v.playerId] = v.ready;
+                    }
                 }
             }
+            
+            Debug.Log($"[CoopNet] Vote participants: {sceneNet.sceneParticipantIds.Count}");
             
             Debug.Log($"[CoopNet] Vote state: {targetScene}, players={data.totalPlayers}, ready={data.readyPlayers}");
         }
