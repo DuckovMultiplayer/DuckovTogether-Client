@@ -570,7 +570,9 @@ public class CoopNetClient : MonoBehaviour
             var sceneNet = SceneNet.Instance;
             if (sceneNet == null) return;
             
-            if (string.IsNullOrEmpty(data.targetScene))
+            var targetScene = !string.IsNullOrEmpty(data.targetSceneId) ? data.targetSceneId : data.targetScene;
+            
+            if (!data.active || string.IsNullOrEmpty(targetScene))
             {
                 sceneNet.sceneVoteActive = false;
                 sceneNet.sceneReady.Clear();
@@ -579,10 +581,17 @@ public class CoopNetClient : MonoBehaviour
             }
             
             sceneNet.sceneVoteActive = true;
-            sceneNet.sceneTargetId = data.targetScene;
+            sceneNet.sceneTargetId = targetScene;
             sceneNet.sceneReady.Clear();
             
-            if (data.votes != null)
+            if (data.playerList?.items != null)
+            {
+                foreach (var p in data.playerList.items)
+                {
+                    sceneNet.sceneReady[p.playerId] = p.ready;
+                }
+            }
+            else if (data.votes != null)
             {
                 foreach (var v in data.votes)
                 {
@@ -590,7 +599,7 @@ public class CoopNetClient : MonoBehaviour
                 }
             }
             
-            Debug.Log($"[CoopNet] Vote state: {data.targetScene}, {data.votes?.Count ?? 0} votes");
+            Debug.Log($"[CoopNet] Vote state: {targetScene}, players={data.totalPlayers}, ready={data.readyPlayers}");
         }
         catch (Exception ex)
         {
@@ -1077,8 +1086,29 @@ public class AIDeltaEntry
 public class SceneVoteData
 {
     public string type { get; set; }
+    public string targetSceneId { get; set; }
     public string targetScene { get; set; }
+    public bool active { get; set; }
+    public int voteId { get; set; }
+    public string hostSceneId { get; set; }
+    public PlayerListData playerList { get; set; }
+    public int totalPlayers { get; set; }
+    public int readyPlayers { get; set; }
     public List<VoteEntry> votes { get; set; }
+}
+
+[Serializable]
+public class PlayerListData
+{
+    public PlayerInfoData[] items { get; set; }
+}
+
+[Serializable]
+public class PlayerInfoData
+{
+    public string playerId { get; set; }
+    public string playerName { get; set; }
+    public bool ready { get; set; }
 }
 
 [Serializable]
