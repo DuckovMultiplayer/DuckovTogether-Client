@@ -281,9 +281,15 @@ public class CoopNetClient : MonoBehaviour
         try
         {
             var baseMsg = JsonConvert.DeserializeObject<BaseJsonMessage>(json);
-            if (baseMsg == null) return;
+            if (baseMsg == null)
+            {
+                Debug.LogWarning($"[CoopNet] Failed to parse base JSON message");
+                return;
+            }
             
-            if (baseMsg.type == "serverState" || baseMsg.type == "worldSync")
+            Debug.Log($"[CoopNet] ProcessJsonMessage: type={baseMsg.type}");
+            
+            if (baseMsg.type == "serverState" || baseMsg.type == "worldSync" || baseMsg.type == "setId")
             {
                 Debug.Log($"[CoopNet] Received important message: {baseMsg.type}");
             }
