@@ -328,6 +328,7 @@ public class CoopNetClient : MonoBehaviour
                     break;
                 case "sceneVote":
                     HandleSceneVote(json);
+                    SceneVoteMessage.Client_HandleVoteState(json);
                     break;
                 case "forceSceneLoad":
                     HandleForceSceneLoad(json);
